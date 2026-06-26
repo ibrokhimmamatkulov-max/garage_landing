@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Colors */
+  --color-primary: #00b067;
+  --color-primary-hover: #00b067de;
+  --color-primary-light: rgba(47, 202, 114, 0.1);
+
+  --color-bg-main: #f9f9f9;
+  --color-bg-section: #f3f3f3;
+  --color-bg-card: #ffffff;
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+
+  --color-text-primary: #1a1c1c;
+  --color-text-secondary: #605e5d;
+  --color-text-accent: #00b067;
+  --color-text-white: #ffffff;
+
+  --color-border: #e2e2e2;
+  --color-border-light: #efefef;
+
+  /* io_ui_lib theme mappings */
+  --main-primary: #00b067;
+  --main-primary-hover: #00b067de;
+  --cards-white: #ffffff;
+  --grey: #f3f3f3;
+  --grey-secondary: #efefef;
+  --stroke-tertiary: #e2e2e2;
+  --text-primary: #1a1c1c;
+  --text-secondary: #605e5d;
+  --error: #ff3b30;
+  --color-primary-hover: #00b067de;
+}
+
+body {
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-size: 1rem;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-main);
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .container {
+    max-width: 1500px;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* io_ui_lib button overrides */
+.button__lg {
+  height: 48px !important;
+  border-radius: 14px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  padding: 12px 24px !important;
+}
+
+.button__primary {
+  background-color: var(--main-primary) !important;
+}
+
+.button__primary:hover {
+  background-color: var(--main-primary-hover) !important;
+}
+
+/* io_ui_lib modal overrides */
+.modal {
+  width: 480px !important;
+  max-width: 92vw !important;
+  border-radius: 20px !important;
+  overflow: hidden !important;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15) !important;
+  transform: translateZ(0) !important;
+  backface-visibility: hidden !important;
+}
+
+.modal-overlay {
+  top: 0px !important;
+}
+
+.modal_header {
+  padding: 32px 32px 20px !important;
+  border-bottom: 1px solid var(--color-border-light) !important;
+  align-items: flex-start !important;
+  border-top-left-radius: 20px !important;
+  border-top-right-radius: 20px !important;
+}
+
+.modal_header_title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* Close button */
+.modal_header .dismiss {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  opacity: 0.6 !important;
+  cursor: pointer !important;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease !important;
+  margin-top: -4px !important;
+}
+
+.modal_header .dismiss:hover {
+  opacity: 1 !important;
+  transform: scale(1.08) !important;
+}
+
+.modal_content {
+  padding: 24px 32px 32px !important;
+  border-bottom-left-radius: 20px !important;
+  border-bottom-right-radius: 20px !important;
+}
+
+/* Library input & select overrides inside modals for premium mockup matching */
+.modal .custom_input {
+  height: 48px !important;
+  border-radius: 12px !important;
+  font-size: 16px !important;
+  padding: 12px 16px !important;
+  border: 1px solid var(--color-border) !important;
+  background-color: var(--color-bg-main) !important;
+  color: var(--color-text-primary) !important;
+  transition: border-color 0.2s ease !important;
+}
+
+.modal .custom_input:focus {
+  border-color: var(--color-primary) !important;
+  background-color: var(--color-bg-main) !important;
+}
+
+.modal .custom-select_input {
+  height: 48px !important;
+  border-radius: 12px !important;
+  font-size: 16px !important;
+  padding: 12px 16px !important;
+  border: 1px solid transparent !important;
+  background-color: var(--grey) !important;
+  color: var(--color-text-primary) !important;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease !important;
+}
+
+.modal .custom-select_input:focus {
+  border-color: var(--color-primary) !important;
+  background-color: var(--color-bg-main) !important;
+}
