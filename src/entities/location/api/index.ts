@@ -1,13 +1,19 @@
+import { apiInstance } from '@/shared/api';
 import type { City } from '../model/types';
 
-export async function getCities(): Promise<City[]> {
-  // Заглушка: возвращает список с одним городом (Душанбе с id 6)
-  return [
-    {
-      id: 6,
-      name: 'Душанбе',
-      lat: 38.559772,
-      lng: 68.773716,
-    },
-  ];
+interface ApiCityResponse {
+  success: boolean;
+  data: City[];
 }
+
+export async function getCities(): Promise<City[]> {
+  const response = await apiInstance.get<ApiCityResponse>('/landing/cities');
+  const responseData = response.data;
+
+  if (responseData?.success && Array.isArray(responseData.data)) {
+    return responseData.data;
+  }
+
+  return [];
+}
+

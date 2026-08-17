@@ -12,6 +12,8 @@ export const useCarStore = defineStore('car', () => {
   const filters = ref<CarFilters>({
     cityId: null,
     gearboxId: null,
+    fuelTypeId: null,
+    tariffId: null,
     durationDays: null,
     sort: 'price_asc',
     page: 1,
@@ -83,19 +85,19 @@ export const useCarStore = defineStore('car', () => {
     }
   }
 
-  function applyFilters(newFilters: Partial<CarFilters>) {
+  async function applyFilters(newFilters: Partial<CarFilters>) {
     filters.value = {
       ...filters.value,
       ...newFilters,
       page: 1, // сбрасываем при смене фильтров
     };
-    fetchCars();
+    await fetchCars();
   }
 
-  function setCityId(cityId: number | null) {
+  async function setCityId(cityId: number | null) {
     filters.value.cityId = cityId;
     filters.value.page = 1;
-    fetchCars();
+    await fetchCars();
   }
 
   return {

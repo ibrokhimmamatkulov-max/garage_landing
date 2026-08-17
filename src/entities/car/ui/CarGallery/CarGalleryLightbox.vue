@@ -106,60 +106,65 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    class="fixed inset-0 z-[9999] bg-black/92 flex flex-col items-center justify-center backdrop-blur-[12px]"
+    class="fixed inset-0 z-[9999] bg-black/95 flex flex-col items-center justify-between backdrop-blur-md select-none"
     @click.self="$emit('close')"
   >
     <!-- Close button -->
     <button
-      class="absolute top-4 right-4 md:top-6 md:right-6 w-9 h-9 md:w-11 md:h-11 flex items-center justify-center text-white/80 bg-white/10 rounded-full z-10 transition-all duration-fast hover:text-white hover:bg-white/20 hover:scale-110 active:scale-92 cursor-pointer"
+      class="absolute top-4 right-4 md:top-6 md:right-6 w-11 h-11 md:w-12 md:h-12 flex items-center justify-center text-white bg-white/15 hover:bg-white/25 active:bg-white/30 rounded-full border border-white/20 shadow-lg z-30 transition-all duration-fast hover:scale-110 active:scale-95 cursor-pointer"
       aria-label="Закрыть"
+      title="Закрыть (Esc)"
       @click="$emit('close')"
     >
-      <AppIcon name="x" :size="24" />
+      <AppIcon name="x" :size="24" color="#ffffff" />
     </button>
 
     <!-- Counter -->
     <div
-      class="absolute top-4 md:top-6 left-1/2 -translate-x-1/2 text-white/75 text-sm md:text-base font-medium z-10 tracking-wider"
+      class="absolute top-4 md:top-6 left-1/2 -translate-x-1/2 text-white/90 text-sm md:text-base font-medium px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-sm z-20 tracking-wider pointer-events-none"
     >
       {{ index + 1 }} / {{ totalImages }}
     </div>
 
     <!-- Main image area -->
     <div
-      class="car-gallery-lightbox__stage flex-1 flex items-center justify-center w-full pt-14 px-4 pb-2 md:pt-16 md:px-20 md:pb-4 cursor-grab active:cursor-grabbing select-none"
+      class="car-gallery-lightbox__stage flex-1 w-full min-h-0 relative flex items-center justify-center px-4 py-14 md:px-20 md:py-16 cursor-grab active:cursor-grabbing"
       @touchstart.passive="onTouchStart"
       @touchmove.passive="onTouchMove"
       @touchend="onTouchEnd"
       @mousedown="onMouseDown"
     >
-      <transition name="gallery-fade" mode="out-in">
-        <img
-          :key="index"
-          :src="currentImage"
-          :alt="`${car.brand} ${car.model} — фото ${index + 1}`"
-          class="max-w-full max-height-full object-contain rounded-radius-sm pointer-events-none"
-          :style="slideTransformStyle"
-          draggable="false"
-        />
-      </transition>
+      <div class="relative w-full h-full flex items-center justify-center min-h-0 overflow-hidden">
+        <transition name="gallery-fade" mode="out-in">
+          <img
+            :key="index"
+            :src="currentImage"
+            :alt="`${car.brand} ${car.model} — фото ${index + 1}`"
+            class="w-full h-full max-w-full max-h-full object-contain rounded-radius-md pointer-events-none drop-shadow-2xl"
+            :style="slideTransformStyle"
+            draggable="false"
+          />
+        </transition>
+      </div>
     </div>
 
     <!-- Navigation arrows -->
     <template v-if="hasMultipleImages">
       <button
-        class="absolute top-1/2 -translate-y-1/2 w-10 h-10 md:w-13 md:h-13 flex items-center justify-center text-white/70 bg-white/8 rounded-full z-10 transition-all duration-fast hover:text-white hover:bg-white/18 hover:scale-110 active:scale-92 left-2 md:left-6 cursor-pointer"
+        class="absolute top-1/2 -translate-y-1/2 left-3 md:left-6 w-11 h-11 md:w-14 md:h-14 flex items-center justify-center text-white bg-white/15 hover:bg-white/25 active:bg-white/30 rounded-full border border-white/20 backdrop-blur-md shadow-lg z-20 transition-all duration-fast hover:scale-110 active:scale-95 cursor-pointer"
         aria-label="Предыдущее фото"
+        title="Предыдущее фото (←)"
         @click.stop="prev"
       >
-        <AppIcon name="chevron-left" :size="28" />
+        <AppIcon name="chevron-left" :size="28" color="#ffffff" />
       </button>
       <button
-        class="absolute top-1/2 -translate-y-1/2 w-10 h-10 md:w-13 md:h-13 flex items-center justify-center text-white/70 bg-white/8 rounded-full z-10 transition-all duration-fast hover:text-white hover:bg-white/18 hover:scale-110 active:scale-92 right-2 md:right-6 cursor-pointer"
+        class="absolute top-1/2 -translate-y-1/2 right-3 md:right-6 w-11 h-11 md:w-14 md:h-14 flex items-center justify-center text-white bg-white/15 hover:bg-white/25 active:bg-white/30 rounded-full border border-white/20 backdrop-blur-md shadow-lg z-20 transition-all duration-fast hover:scale-110 active:scale-95 cursor-pointer"
         aria-label="Следующее фото"
+        title="Следующее фото (→)"
         @click.stop="next"
       >
-        <AppIcon name="chevron-right" :size="28" />
+        <AppIcon name="chevron-right" :size="28" color="#ffffff" />
       </button>
     </template>
 
@@ -167,16 +172,16 @@ onBeforeUnmount(() => {
     <div
       v-if="hasMultipleImages"
       ref="fullscreenThumbsContainer"
-      class="flex gap-2 px-8 py-4 md:px-8 md:py-4 max-w-full overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      class="shrink-0 flex gap-2 px-6 py-3 md:px-8 md:py-4 max-w-full overflow-x-auto scroll-smooth z-20 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
     >
       <button
         v-for="(image, imgIdx) in car.images"
         :key="imgIdx"
-        class="shrink-0 w-[3.5rem] h-[2.25rem] md:w-[4.5rem] md:h-[3rem] rounded-radius-sm overflow-hidden border-2 cursor-pointer transition-all duration-fast hover:opacity-70 hover:-translate-y-[2px]"
+        class="shrink-0 w-16 h-11 md:w-20 md:h-14 rounded-radius-sm overflow-hidden border-2 cursor-pointer transition-all duration-fast hover:opacity-100 hover:scale-105"
         :class="[
           imgIdx === index
-            ? 'border-primary opacity-100 active-thumb'
-            : 'border-transparent opacity-45',
+            ? 'border-primary opacity-100 shadow-md active-thumb ring-2 ring-primary/40'
+            : 'border-transparent opacity-50 hover:opacity-80',
         ]"
         @click="goTo(imgIdx)"
       >

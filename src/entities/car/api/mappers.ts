@@ -37,11 +37,15 @@ export interface ApiCarData {
     id: number;
     name: string;
   }>;
+  deposit?: number;
+  deposit_per_day?: number;
   tariffs?: Array<{
     id: number;
     duration_days: number;
     price: number;
-    free_weekend_day: boolean;
+    free_weekend_day: number;
+    deposit?: number;
+    deposit_per_day?: number;
   }>;
   performer_id?: number | null;
 }
@@ -83,18 +87,27 @@ export function mapCar(apiData: ApiCarData): Car {
   let workDays = 7;
   let weekendDays = 0;
   if (Array.isArray(apiData.tariffs) && apiData.tariffs.length > 0) {
-    const hasFreeWeekend = apiData.tariffs.some((t) => t.free_weekend_day);
-    if (hasFreeWeekend) {
-      workDays = 6;
-      weekendDays = 1;
-    }
+    const firstTariff = apiData.tariffs[0];
+    workDays = Number(firstTariff.duration_days) || 7;
+    weekendDays = Number(firstTariff.free_weekend_day) || 0;
   }
 
   const idNum = Number(apiData.id) || 1;
   const rating = 4.2 + (idNum % 8) * 0.1;
 
-  const deposit = pricePerDay > 200 ? 1500 : 1000;
-  const depositPerDay = pricePerDay > 200 ? 250 : 200;
+  // Депозит берется из первого тарифа или из свойств машины (если переданы бэкендом)
+  const firstTariffDeposit = apiData.tariffs?.[0]?.deposit ?? apiData.deposit;
+  const firstTariffDepositPerDay =
+    apiData.tariffs?.[0]?.deposit_per_day ?? apiData.deposit_per_day;
+
+  const deposit =
+    firstTariffDeposit !== undefined && firstTariffDeposit !== null
+      ? Number(firstTariffDeposit)
+      : undefined;
+  const depositPerDay =
+    firstTariffDepositPerDay !== undefined && firstTariffDepositPerDay !== null
+      ? Number(firstTariffDepositPerDay)
+      : undefined;
 
   return {
     id: String(apiData.id),
@@ -128,6 +141,16 @@ export function mapCar(apiData: ApiCarData): Car {
     color: apiData.color || undefined,
     fuelTypeObj: apiData.fuel_type || undefined,
     dopOptions: apiData.dop_options,
-    tariffs: apiData.tariffs,
+    tariffs: apiData.tariffs?.map((t) => ({
+      id: t.id,
+      durationDays: t.duration_days,
+      price: t.price,
+      freeWeekendDay: t.free_weekend_day,
+      deposit: t.deposit !== undefined && t.deposit !== null ? Number(t.deposit) : undefined,
+      depositPerDay:
+        t.deposit_per_day !== undefined && t.deposit_per_day !== null
+          ? Number(t.deposit_per_day)
+          : undefined,
+    })),
   };
 }

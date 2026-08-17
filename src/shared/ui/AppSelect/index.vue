@@ -5,10 +5,7 @@ defineOptions({
   name: 'AppSelect',
 });
 
-export interface SelectOption {
-  label: string;
-  value: string;
-}
+import type { SelectOption } from './types';
 
 const props = defineProps<{
   options: SelectOption[];

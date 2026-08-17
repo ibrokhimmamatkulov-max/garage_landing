@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { AppLogo } from '@/shared/ui';
+
 defineOptions({
   name: 'AppFooter',
 });
@@ -9,13 +11,9 @@ defineOptions({
     <div class="container">
       <div class="flex flex-col md:flex-row justify-between items-start gap-lg md:gap-0 mb-xl">
         <div>
-          <div class="flex items-center gap-sm">
-            <span
-              class="flex items-center justify-center w-10 h-10 bg-primary text-white rounded-full font-bold text-lg"
-              >G</span
-            >
-            <span class="text-xl font-semibold">Gram Гараж</span>
-          </div>
+          <router-link to="/" class="inline-flex text-text-primary no-underline">
+            <AppLogo size="lg" />
+          </router-link>
         </div>
 
         <div>
@@ -27,7 +25,7 @@ defineOptions({
       <div
         class="flex flex-col md:flex-row justify-between items-center gap-md md:gap-0 pt-lg border-t border-border-light text-center md:text-left"
       >
-        <p class="text-[13px] text-text-secondary">© 2026 ООО «Gram Гараж»</p>
+        <p class="text-[13px] text-text-secondary">© 2026 ООО «Gram Garage»</p>
         <div class="flex flex-col items-center md:items-end gap-xs">
           <a
             href="#"

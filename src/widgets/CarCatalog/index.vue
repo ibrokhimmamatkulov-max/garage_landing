@@ -102,7 +102,6 @@ watch(triggerRef, () => {
           <template v-for="(car, index) in cars" :key="car.id">
             <CarCard
               :car="car"
-              :show-city-tooltip="index === 0"
               @apply="$emit('apply', $event)"
               @details="$emit('details', $event)"
             />

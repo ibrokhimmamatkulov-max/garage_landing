@@ -30,9 +30,11 @@ export interface CarDopOption {
 
 export interface CarTariff {
   id: number;
-  duration_days: number;
+  durationDays: number;
   price: number;
-  free_weekend_day: boolean;
+  freeWeekendDay: number;
+  deposit?: number;
+  depositPerDay?: number;
 }
 
 export interface Car {
@@ -47,8 +49,8 @@ export interface Car {
   taxiPark: string;
   pricePerDay: number;
   currency: string;
-  deposit: number;
-  depositPerDay: number;
+  deposit?: number;
+  depositPerDay?: number;
   minRentDays: number;
   workDays: number;
   weekendDays: number;
@@ -71,6 +73,8 @@ export interface Car {
 export interface CarFilters {
   cityId: number | null;
   gearboxId: number | null;
+  fuelTypeId?: number | null;
+  tariffId?: number | null;
   durationDays: number | null;
   sort: 'price_asc' | 'price_desc' | 'year_asc' | 'year_desc' | null;
   page?: number;

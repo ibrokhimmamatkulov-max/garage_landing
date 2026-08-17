@@ -12,15 +12,13 @@ interface ApiApplyResponse {
 export async function submitApplication(
   payload: ApplicationPayload,
 ): Promise<{ success: boolean; message?: string }> {
-  const response = await apiInstance.post<ApiApplyResponse>('/landing/apply', null, {
-    params: {
-      name: payload.name,
-      phone: payload.phone,
-      city_id: payload.cityId,
-      offer_id: payload.offerId,
-      tariff_id: payload.tariffId,
-      comment: payload.comment,
-    },
+  const response = await apiInstance.post<ApiApplyResponse>('/landing/apply', {
+    name: payload.name,
+    phone: payload.phone,
+    city_id: payload.cityId,
+    offer_id: payload.offerId,
+    tariff_id: payload.tariffId,
+    comment: payload.comment,
   });
 
   const responseData = response.data;

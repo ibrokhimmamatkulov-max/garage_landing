@@ -7,15 +7,9 @@ defineOptions({
   name: 'CarCard',
 });
 
-const props = withDefaults(
-  defineProps<{
-    car: Car;
-    showCityTooltip?: boolean;
-  }>(),
-  {
-    showCityTooltip: false,
-  },
-);
+const props = defineProps<{
+  car: Car;
+}>();
 
 defineEmits<{
   apply: [car: Car];
@@ -23,11 +17,6 @@ defineEmits<{
 }>();
 
 const currentImageIndex = ref(0);
-const isTooltipVisible = ref(true);
-
-function closeTooltip() {
-  isTooltipVisible.value = false;
-}
 
 const imageCounter = computed(() => {
   const total = props.car.images.length;
@@ -85,14 +74,6 @@ function handleTouchEnd(event: TouchEvent) {
         class="absolute top-md right-md px-2.5 py-1 bg-black/60 text-white text-xs font-medium rounded-full z-20 pointer-events-none"
         >{{ imageCounter }}</span
       >
-      <div
-        v-if="showCityTooltip && isTooltipVisible"
-        class="group absolute top-md left-md bg-[#1a1a1a]/90 text-white px-3 py-1.5 rounded-full text-[11px] font-medium flex items-center gap-1.5 cursor-pointer z-20 select-none shadow-[0_2px_8px_rgba(0,0,0,0.15)] transition-colors duration-fast hover:bg-[#1a1a1a]"
-        @click.stop="closeTooltip"
-      >
-        <span class="font-bold opacity-70 leading-none group-hover:opacity-100">×</span>
-        Вы можете изменить город
-      </div>
 
       <!-- Зоны для переключения картинок при наведении (только если больше 1 картинки) -->
       <div v-if="car.images.length > 1" class="absolute inset-0 hidden md:flex">

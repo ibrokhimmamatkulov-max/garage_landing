@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { type Car, CarGallery } from '@/entities/car';
+import { type Car, CarGallery, useCarTariffs } from '@/entities/car';
 import AppIcon from '@/shared/ui/AppIcon/index.vue';
-import type { SelectOption } from '@/shared/ui/AppSelect/index.vue';
 
 defineOptions({
   name: 'CarDetails',
@@ -12,16 +10,28 @@ const props = defineProps<{
   car: Car;
 }>();
 
-defineEmits<{
-  apply: [car: Car];
+const emit = defineEmits<{
+  apply: [car: Car, tariffId?: number];
   back: [];
 }>();
 
-const rentalOptions = computed<SelectOption[]>(() => [
-  { label: `${props.car.pricePerDay} сомон/день`, value: String(props.car.pricePerDay) },
-]);
+const {
+  selectedTariffId,
+  tariffOptions,
+  currentPrice,
+  currentWorkDays,
+  currentWeekendDays,
+  currentDeposit,
+  currentDepositPerDay,
+} = useCarTariffs(() => props.car);
 
-const selectedPrice = ref(String(props.car.pricePerDay));
+function handleApply() {
+  const tariffIdNum =
+    selectedTariffId.value && selectedTariffId.value !== 'default'
+      ? Number(selectedTariffId.value)
+      : undefined;
+  emit('apply', props.car, tariffIdNum);
+}
 </script>
 
 <template>
@@ -40,21 +50,22 @@ const selectedPrice = ref(String(props.car.pricePerDay));
             >
               <span class="text-[14px] text-text-primary">Стоимость и схема аренды</span>
               <div class="text-right">
-                <strong class="block text-base font-bold">{{ car.pricePerDay }} сомон/день</strong>
+                <strong class="block text-base font-bold">{{ currentPrice }} TJS/день</strong>
                 <span class="text-[13px] text-text-secondary">
-                  Аренда · {{ car.workDays }}/{{ car.weekendDays }}
+                  Аренда · {{ currentWorkDays }}/{{ currentWeekendDays }}
                 </span>
               </div>
             </div>
 
             <div
+              v-if="currentDeposit"
               class="flex justify-between items-start py-base border-b border-border-light last:border-b-0"
             >
               <span class="text-[14px] text-text-primary">Депозит</span>
               <div class="text-right">
-                <strong class="block text-base font-bold">{{ car.deposit }} tjs</strong>
-                <span class="text-[13px] text-text-secondary">
-                  {{ car.depositPerDay }} tjs/день
+                <strong class="block text-base font-bold">{{ currentDeposit }} TJS</strong>
+                <span v-if="currentDepositPerDay" class="text-[13px] text-text-secondary">
+                  {{ currentDepositPerDay }} TJS/день
                 </span>
               </div>
             </div>
@@ -98,8 +109,22 @@ const selectedPrice = ref(String(props.car.pricePerDay));
               <div
                 class="flex justify-between py-md text-[14px] border-b border-border-light last:border-b-0"
               >
-                <span>Тариф</span>
-                <strong class="font-bold">{{ car.carClass }}</strong>
+                <span>Кузов</span>
+                <strong class="font-bold">{{ car.bodyType?.name || car.carClass }}</strong>
+              </div>
+              <div
+                v-if="car.countSeat"
+                class="flex justify-between py-md text-[14px] border-b border-border-light last:border-b-0"
+              >
+                <span>Количество мест</span>
+                <strong class="font-bold">{{ car.countSeat }}</strong>
+              </div>
+              <div
+                v-if="car.color?.name"
+                class="flex justify-between py-md text-[14px] border-b border-border-light last:border-b-0"
+              >
+                <span>Цвет</span>
+                <strong class="font-bold">{{ car.color.name }}</strong>
               </div>
             </div>
           </div>
@@ -108,17 +133,19 @@ const selectedPrice = ref(String(props.car.pricePerDay));
             <h3 class="text-[20px] font-bold leading-6 mb-base">Выберите тип аренды</h3>
 
             <CSelect
-              v-model="selectedPrice"
-              :options="rentalOptions"
+              v-model="selectedTariffId"
+              :options="tariffOptions"
               label="label"
               value-key="value"
+              placeholder="Выберите тариф"
+              :search="false"
             />
 
             <p class="text-[13px] text-text-secondary mt-xs mb-base">
-              Аренда · {{ car.workDays }}/{{ car.weekendDays }}
+              Аренда · {{ currentWorkDays }}/{{ currentWeekendDays }}
             </p>
 
-            <DButton theme="primary" size="lg" class="w-full" @click="$emit('apply', car)">
+            <DButton theme="primary" size="lg" class="w-full" @click="handleApply">
               Оставить заявку
             </DButton>
 

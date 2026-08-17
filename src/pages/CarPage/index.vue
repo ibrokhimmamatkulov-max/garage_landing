@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { useCarStore } from '@/entities/car';
+import { useCarStore, type Car } from '@/entities/car';
 import AppHeader from '@/widgets/AppHeader/index.vue';
 import CarDetails from '@/widgets/CarDetails/index.vue';
 import AppFooter from '@/widgets/AppFooter/index.vue';
@@ -20,13 +20,15 @@ const carStore = useCarStore();
 const isFilterOpen = ref(false);
 const isApplicationOpen = ref(false);
 const isSuccessOpen = ref(false);
+const selectedTariffId = ref<number | undefined>(undefined);
 
 onMounted(async () => {
   const id = route.params.id as string;
   await carStore.fetchCarById(id);
 });
 
-function handleApply() {
+function handleApply(_car: Car, tariffId?: number) {
+  selectedTariffId.value = tariffId;
   isApplicationOpen.value = true;
 }
 
@@ -63,11 +65,12 @@ function handleBack() {
     <AppFooter />
 
     <!-- Modals -->
-    <FilterModal v-if="isFilterOpen" @close="isFilterOpen = false" @apply="isFilterOpen = false" />
+    <FilterModal v-if="isFilterOpen" @close="isFilterOpen = false" />
 
     <ApplicationModal
       v-if="isApplicationOpen && carStore.currentCar"
       :car="carStore.currentCar"
+      :initial-tariff-id="selectedTariffId"
       @close="isApplicationOpen = false"
       @success="handleApplicationSuccess"
     />

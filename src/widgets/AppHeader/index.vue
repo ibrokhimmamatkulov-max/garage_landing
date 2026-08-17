@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useLocationStore, type City } from '@/entities/location';
 import { useCarStore } from '@/entities/car';
-import { AppIcon } from '@/shared/ui';
+import { AppIcon, AppLogo } from '@/shared/ui';
 
 defineOptions({
   name: 'AppHeader',
@@ -91,14 +91,10 @@ const isTransparent = computed(() => {
       <div class="flex items-center gap-xl">
         <router-link
           to="/"
-          class="flex items-center gap-sm no-underline transition-colors duration-base"
+          class="no-underline transition-colors duration-base"
           :class="isTransparent ? 'text-white' : 'text-text-primary'"
         >
-          <span
-            class="flex items-center justify-center w-8 h-8 bg-primary text-white rounded-full font-bold text-[14px]"
-            >G</span
-          >
-          <span class="text-base font-semibold">Gram Гараж</span>
+          <AppLogo hide-text-on-mobile />
         </router-link>
       </div>
 

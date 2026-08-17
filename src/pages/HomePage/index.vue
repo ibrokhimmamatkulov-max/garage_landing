@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { type Car, type CarFilters, useCarStore } from '@/entities/car';
+import { type Car, useCarStore } from '@/entities/car';
 import { useLocationStore } from '@/entities/location';
 import AppHeader from '@/widgets/AppHeader/index.vue';
 import HeroBanner from '@/widgets/HeroBanner/index.vue';
@@ -40,9 +40,6 @@ function handleOpenFilters() {
   isFilterOpen.value = true;
 }
 
-function handleApplyFilters(filters: CarFilters) {
-  carStore.applyFilters(filters);
-}
 
 function handleLoadMore() {
   carStore.loadNextPage();
@@ -84,7 +81,7 @@ function handleDetails(car: Car) {
     <AppFooter />
 
     <!-- Modals -->
-    <FilterModal v-if="isFilterOpen" @close="isFilterOpen = false" @apply="handleApplyFilters" />
+    <FilterModal v-if="isFilterOpen" @close="isFilterOpen = false" />
 
     <ApplicationModal
       v-if="isApplicationOpen && selectedCar"

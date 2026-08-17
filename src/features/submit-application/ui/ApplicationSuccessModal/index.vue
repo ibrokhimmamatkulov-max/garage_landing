@@ -22,16 +22,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <CModal
-    ref="modalRef"
-    title="Заявка отправлена"
-    @before-close="$emit('close')"
-  >
-    <div class="flex flex-col pt-sm border-t border-border-light">
+  <CModal ref="modalRef" title="Заявка отправлена" @before-close="$emit('close')">
+    <div class="flex flex-col">
       <div class="w-full pt-md mb-xl flex flex-col gap-xs">
         <div>
           <p class="text-xl font-bold text-text-primary">{{ car.brand }} {{ car.model }}</p>
-          <p class="text-[13px] text-text-secondary">Таксопарк «{{ car.taxiPark }}»</p>
         </div>
       </div>
 

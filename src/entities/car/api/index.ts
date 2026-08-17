@@ -34,10 +34,12 @@ export async function getCars(filters?: CarFilters): Promise<PaginatedCars> {
   const params: Record<string, string | number> = {};
 
   if (filters) {
-    // if (filters.cityId !== null) params.city_id = filters.cityId;
-    if (filters.gearboxId !== null) params.gearbox_id = filters.gearboxId;
-    if (filters.durationDays !== null) params.duration_days = filters.durationDays;
-    if (filters.sort !== null) params.sort = filters.sort;
+    if (filters.cityId !== null && filters.cityId !== undefined) params.city_id = filters.cityId;
+    if (filters.gearboxId !== null && filters.gearboxId !== undefined) params.gearbox_id = filters.gearboxId;
+    if (filters.fuelTypeId !== null && filters.fuelTypeId !== undefined) params.fuel_type_id = filters.fuelTypeId;
+    if (filters.tariffId !== null && filters.tariffId !== undefined) params.tariff_id = filters.tariffId;
+    if (filters.durationDays !== null && filters.durationDays !== undefined) params.duration_days = filters.durationDays;
+    if (filters.sort !== null && filters.sort !== undefined) params.sort = filters.sort;
     if (filters.page !== undefined) params.page = filters.page;
     if (filters.perPage !== undefined) params.per_page = filters.perPage;
   }

@@ -36,17 +36,7 @@ defineProps<{
         <AppIcon class="shrink-0 text-text-secondary" name="star" :size="20" />
       </div>
       <span
-        >Класс авто: <strong>{{ car.carClass }}</strong></span
-      >
-    </div>
-
-    <div class="flex items-center gap-md py-2.5 border-b border-border-light">
-      <div class="flex items-center justify-center w-8 h-8 rounded-radius-md !bg-grey shrink-0">
-        <AppIcon class="text-text-secondary" name="taxipark" :size="20" />
-      </div>
-      <span
-        >Таксопарк «<strong>{{ car.taxiPark }}</strong
-        >»</span
+        >Кузов: <strong>{{ car.bodyType?.name || car.carClass }}</strong></span
       >
     </div>
   </div>

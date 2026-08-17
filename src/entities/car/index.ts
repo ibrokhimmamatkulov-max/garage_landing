@@ -1,6 +1,7 @@
 export { default as CarCard } from './ui/CarCard/index.vue';
 export { default as CarGallery } from './ui/CarGallery/index.vue';
 export { useCarStore } from './model/store';
+export { useCarTariffs } from './model/useCarTariffs';
 export type {
   Car,
   CarFilters,

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import type { Car } from '@/entities/car';
+import { type Car, useCarTariffs } from '@/entities/car';
 import { useLocationStore } from '@/entities/location';
 import { submitApplication } from '../../api';
 import { maskito as vMaskito } from '@maskito/vue';
@@ -12,6 +12,7 @@ defineOptions({
 
 const props = defineProps<{
   car: Car;
+  initialTariffId?: number;
 }>();
 
 const emit = defineEmits<{
@@ -21,6 +22,10 @@ const emit = defineEmits<{
 
 const modalRef = ref<{ open: () => void; close: () => void } | null>(null);
 const locationStore = useLocationStore();
+const { selectedTariffId, tariffOptions } = useCarTariffs(
+  () => props.car,
+  () => props.initialTariffId,
+);
 
 onMounted(() => {
   modalRef.value?.open();
@@ -28,10 +33,16 @@ onMounted(() => {
 
 const name = ref('');
 const phone = ref('');
-const promoCode = ref('');
+const comment = ref('');
 const isSubmitting = ref(false);
 
-const isPhoneValid = computed(() => phone.value.length === 16);
+const toastRef = ref<{ open: () => void; close: () => void } | null>(null);
+const toastMessage = ref('');
+
+const isPhoneValid = computed(() => {
+  const clean = phone.value.replace(/\D/g, '');
+  return clean.length === 12 || clean.length === 9;
+});
 
 async function handleSubmit() {
   if (!isPhoneValid.value || !name.value.trim()) return;
@@ -40,32 +51,41 @@ async function handleSubmit() {
   try {
     const cityId = locationStore.currentCity?.id || Number(props.car.city?.id);
     const offerId = Number(props.car.id);
-    const tariffId =
-      props.car.tariffs && props.car.tariffs.length > 0 ? props.car.tariffs[0].id : undefined;
+    const tariffId = selectedTariffId.value ? Number(selectedTariffId.value) : undefined;
+
+    // Очищаем телефон (оставляем только цифры, убираем +, пробелы и тире)
+    const cleanPhone = phone.value.replace(/\D/g, '');
 
     const result = await submitApplication({
       name: name.value.trim(),
-      phone: phone.value.trim(),
+      phone: cleanPhone,
       cityId,
       offerId,
       tariffId,
-      comment: promoCode.value ? `Промокод: ${promoCode.value}` : undefined,
+      comment: comment.value.trim() || undefined,
     });
 
     if (result.success) {
       emit('success');
     } else {
-      alert(result.message || 'Произошла ошибка при отправке заявки');
+      toastMessage.value = result.message || 'Произошла ошибка при отправке заявки';
+      toastRef.value?.open();
     }
   } catch (error: unknown) {
     let errMsg = 'Ошибка при отправке заявки. Попробуйте еще раз.';
     if (error && typeof error === 'object' && 'response' in error) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      if (axiosError.response?.data?.message) {
+      const axiosError = error as {
+        response?: { data?: { message?: string; errors?: Record<string, string[]> } };
+      };
+      if (axiosError.response?.data?.errors) {
+        const firstError = Object.values(axiosError.response.data.errors)[0]?.[0];
+        if (firstError) errMsg = firstError;
+      } else if (axiosError.response?.data?.message) {
         errMsg = axiosError.response.data.message;
       }
     }
-    alert(errMsg);
+    toastMessage.value = errMsg;
+    toastRef.value?.open();
   } finally {
     isSubmitting.value = false;
   }
@@ -76,31 +96,31 @@ async function handleSubmit() {
   <CModal
     ref="modalRef"
     title="Оставьте свои данные для завершения бронирования"
+    :hidden-overflow="true"
     @before-close="$emit('close')"
   >
     <div class="pt-0">
-      <div class="flex justify-between items-center mb-xl mt-md">
-        <div class="flex flex-col">
-          <span class="text-xl font-bold text-text-primary">
-            {{ car.pricePerDay }} сомон/день
-          </span>
-          <p class="text-[13px] text-text-secondary mt-xs">
-            Аренда · {{ car.workDays }} рабочих дней / {{ car.weekendDays }} выходных
-          </p>
-        </div>
-        <span
-          class="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full text-[14px] shrink-0"
-          >✓</span
-        >
-      </div>
-
       <div class="flex flex-col gap-md mb-xl">
+        <CSelect
+          class="border-1 border-[#444]"
+          v-model="selectedTariffId"
+          :options="tariffOptions"
+          label="label"
+          placeholder="Выберите тариф"
+          value-key="value"
+          :search="false"
+        />
         <CInput v-model="name" placeholder="Ваше имя" type="text" />
-        <CInput v-model="phone" v-maskito="phoneOptions" placeholder="+992 17 300 22 88" type="tel" />
-        <CInput v-model="promoCode" placeholder="Промокод, если есть" />
+        <CInput
+          v-model="phone"
+          v-maskito="phoneOptions"
+          placeholder="+992 00 000 00 00"
+          type="tel"
+        />
+        <CInput v-model="comment" placeholder="Комментарий" />
       </div>
 
-      <p class="text-[12px] text-text-secondary text-center leading-relaxed mb-xl px-md">
+      <p class="text-sm text-text-secondary text-center leading-relaxed mb-sm px-md">
         Нажимая на кнопку вы соглашаетесь с
         <a href="#" class="text-[#007aff] hover:text-primary-hover hover:underline"
           >Условиями использования сервиса «Gram Гараж»</a
@@ -110,7 +130,7 @@ async function handleSubmit() {
         >
       </p>
 
-      <p class="text-[13px] text-text-secondary text-center mb-md">Это бесплатно</p>
+      <p class="text-sm text-text-secondary text-center mb-md">Это бесплатно</p>
 
       <DButton
         theme="primary"
@@ -122,5 +142,16 @@ async function handleSubmit() {
         Оставить заявку
       </DButton>
     </div>
+
+    <CToast ref="toastRef" :duration="3000" theme="error">
+      {{ toastMessage }}
+    </CToast>
   </CModal>
 </template>
+
+<style scoped>
+:deep(.custom-select_input) {
+  background-color: #f9f9f9 !important;
+  border: 1px solid #e2e2e2 !important;
+}
+</style>
