@@ -72,7 +72,7 @@ export default {
       },
 
       fontFamily: {
-        sans: ['Onest', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['Manrope', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
 
       fontSize: {

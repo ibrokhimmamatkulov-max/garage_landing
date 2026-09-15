@@ -24,7 +24,6 @@ import {
   RotateIcon,
   DragIcon,
   SubtractIcon,
-  FilterIcon,
   FilterEditIcon,
   FilterLinesIcon,
   FilterPlusIcon,
@@ -112,7 +111,9 @@ export const ICON_COMPONENTS: Record<IconName, Component | null> = {
   subtract: SubtractIcon,
 
   // --- Фильтры ---
-  filter: FilterIcon,
+  // Рисуем сами: иконка из библиотеки — три прямые линии, читается как
+  // «меню», а не «фильтры», и выглядит грубо на мелком кегле.
+  filter: null,
   'filter-edit': FilterEditIcon,
   'filter-lines': FilterLinesIcon,
   'filter-plus': FilterPlusIcon,
@@ -188,8 +189,13 @@ export const CUSTOM_ICON_PATHS: Partial<Record<IconName, string>> = {
   'arrow-left': '<line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />',
   'arrow-right': '<line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />',
 
+  // Ползунки, а не гамбургер: сразу читается как «настроить выдачу»
+  filter:
+    '<path d="M4 7h7" /><path d="M16 7h4" /><circle cx="13.5" cy="7" r="2.2" /><path d="M4 17h4" /><path d="M13 17h7" /><circle cx="10.5" cy="17" r="2.2" />',
+
+  // Каплевидная булавка со скруглённой посадкой — мягче стандартной «пирамидки»
   'map-pin':
-    '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z" /><circle cx="12" cy="10" r="3" />',
+    '<path d="M12 21.5c4.2-4.4 6.3-7.8 6.3-10.6a6.3 6.3 0 1 0-12.6 0c0 2.8 2.1 6.2 6.3 10.6z" /><circle cx="12" cy="10.6" r="2.4" />',
   building:
     '<path d="M1 11V21H6V15H10V21H15V11L8 6L1 11Z" /><path d="M10 3V4.97L17 9.97V11H19V13H17V15H19V17H17V21H23V3H10ZM19 9H17V7H19V9Z" />',
   tag: '<path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" /><path d="M7 7h.01" />',

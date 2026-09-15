@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useLocationStore } from '@/entities/location';
 import { useCarStore } from '@/entities/car';
+import { inCity } from '@/shared/lib/city';
 
 defineOptions({
   name: 'HeroBanner',
@@ -13,21 +14,6 @@ defineEmits<{
 
 const locationStore = useLocationStore();
 const carStore = useCarStore();
-
-/**
- * Предложный падеж города: «в Худжанде», но «в Душанбе».
- * Наивное добавление «е» ломалось бы на Душанбе и Турсунзаде — они несклоняемые.
- */
-function inCity(name: string): string {
-  const trimmed = name.trim();
-  if (!trimmed) return '';
-
-  const last = trimmed.slice(-1).toLowerCase();
-
-  if ('аеёиоуыэюя'.includes(last)) return trimmed; // Душанбе, Турсунзаде
-  if (last === 'ь' || last === 'й') return `${trimmed.slice(0, -1)}е`; // Гулистонь → Гулистоне
-  return `${trimmed}е`; // Худжанд → Худжанде, Бохтар → Бохтаре
-}
 
 const cityName = computed(() => {
   const name = locationStore.currentCity?.name;
