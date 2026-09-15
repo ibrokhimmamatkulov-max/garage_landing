@@ -5,29 +5,57 @@
 @tailwind utilities;
 
 :root {
+  /*
+   * Токены заданы КАНАЛАМИ RGB, а не hex.
+   *
+   * Tailwind подставляет их как rgb(var(--x) / <alpha-value>), поэтому
+   * работают и сплошные цвета, и прозрачность (bg-brand/25). Главное:
+   * вся палитра переключается подменой этих переменных — не нужно
+   * пересобирать конфиг и трогать компоненты.
+   */
+
   /* --- Бренд --- */
-  --brand: #00b067;
-  --brand-ink: #00814b;
-  --brand-deep: #00603a;
-  --brand-tint: #e8f6ef;
+  --brand-rgb: 0 176 103;
+  --brand-ink-rgb: 0 129 75;
+  --brand-deep-rgb: 0 96 58;
+  --brand-tint-rgb: 232 246 239;
 
   /* --- Текст --- */
-  --ink: #10100f;
-  --ink-muted: #5b5b56;
-  --ink-soft: #8c8c86;
-  --ink-ghost: #b4b4ae;
-  --ink-inverse: #ffffff;
+  --ink-rgb: 16 16 15;
+  --ink-muted-rgb: 91 91 86;
+  --ink-soft-rgb: 140 140 134;
+  --ink-ghost-rgb: 180 180 174;
 
   /* --- Поверхности --- */
-  --canvas: #fafaf8;
-  --paper: #ffffff;
-  --sunken: #f2f2ef;
-  --overlay: rgba(16, 16, 15, 0.56);
+  --canvas-rgb: 250 250 248;
+  --paper-rgb: 255 255 255;
+  --sunken-rgb: 242 242 239;
 
   /* --- Линии --- */
-  --hairline: #e6e6e1;
-  --hairline-soft: #f0f0ec;
-  --hairline-strong: #d6d6d0;
+  --hairline-rgb: 230 230 225;
+  --hairline-soft-rgb: 240 240 236;
+  --hairline-strong-rgb: 214 214 208;
+
+  /* --- Производные значения для обычного CSS --- */
+  --brand: rgb(var(--brand-rgb));
+  --brand-ink: rgb(var(--brand-ink-rgb));
+  --brand-deep: rgb(var(--brand-deep-rgb));
+  --brand-tint: rgb(var(--brand-tint-rgb));
+
+  --ink: rgb(var(--ink-rgb));
+  --ink-muted: rgb(var(--ink-muted-rgb));
+  --ink-soft: rgb(var(--ink-soft-rgb));
+  --ink-ghost: rgb(var(--ink-ghost-rgb));
+  --ink-inverse: #ffffff;
+
+  --canvas: rgb(var(--canvas-rgb));
+  --paper: rgb(var(--paper-rgb));
+  --sunken: rgb(var(--sunken-rgb));
+  --overlay: rgb(var(--ink-rgb) / 0.56);
+
+  --hairline: rgb(var(--hairline-rgb));
+  --hairline-soft: rgb(var(--hairline-soft-rgb));
+  --hairline-strong: rgb(var(--hairline-strong-rgb));
 
   /* --- Семантика --- */
   --warning: #a05f00;

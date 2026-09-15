@@ -5,35 +5,36 @@ export default {
     extend: {
       colors: {
         /**
-         * Зелёный из логотипа остаётся брендом, но меняет роль.
-         * brand.DEFAULT (#00B067) даёт под белым текстом 2.84:1 — под текст
-         * его ставить нельзя, только заливки и индикаторы.
-         * Работает brand.ink (#00814B) — 4.95:1, проходит WCAG AA.
+         * Цвета берутся из CSS-переменных каналами RGB, а не хексами.
+         * Благодаря <alpha-value> работают и bg-brand, и bg-brand/25.
+         * Смена палитры = подмена переменных в :root, без пересборки конфига.
+         *
+         * Роли: brand.DEFAULT — заливки и индикаторы, под белым текстом
+         * его ставить нельзя (2.84:1). Под текст и кнопки — brand.ink (4.95:1).
          */
         brand: {
-          DEFAULT: '#00B067',
-          ink: '#00814B',
-          deep: '#00603A',
-          tint: '#E8F6EF',
-          glow: 'rgba(0, 176, 103, 0.14)',
+          DEFAULT: 'rgb(var(--brand-rgb) / <alpha-value>)',
+          ink: 'rgb(var(--brand-ink-rgb) / <alpha-value>)',
+          deep: 'rgb(var(--brand-deep-rgb) / <alpha-value>)',
+          tint: 'rgb(var(--brand-tint-rgb) / <alpha-value>)',
         },
         ink: {
-          DEFAULT: '#10100F',
-          muted: '#5B5B56',
-          soft: '#8C8C86',
-          ghost: '#B4B4AE',
+          DEFAULT: 'rgb(var(--ink-rgb) / <alpha-value>)',
+          muted: 'rgb(var(--ink-muted-rgb) / <alpha-value>)',
+          soft: 'rgb(var(--ink-soft-rgb) / <alpha-value>)',
+          ghost: 'rgb(var(--ink-ghost-rgb) / <alpha-value>)',
         },
         surface: {
-          canvas: '#FAFAF8',
-          paper: '#FFFFFF',
-          sunken: '#F2F2EF',
-          raised: '#FFFFFF',
-          inverse: '#10100F',
+          canvas: 'rgb(var(--canvas-rgb) / <alpha-value>)',
+          paper: 'rgb(var(--paper-rgb) / <alpha-value>)',
+          sunken: 'rgb(var(--sunken-rgb) / <alpha-value>)',
+          raised: 'rgb(var(--paper-rgb) / <alpha-value>)',
+          inverse: 'rgb(var(--ink-rgb) / <alpha-value>)',
         },
         hairline: {
-          DEFAULT: '#E6E6E1',
-          soft: '#F0F0EC',
-          strong: '#D6D6D0',
+          DEFAULT: 'rgb(var(--hairline-rgb) / <alpha-value>)',
+          soft: 'rgb(var(--hairline-soft-rgb) / <alpha-value>)',
+          strong: 'rgb(var(--hairline-strong-rgb) / <alpha-value>)',
         },
         state: {
           warning: '#A05F00',
@@ -46,28 +47,28 @@ export default {
 
         /* --- легаси-алиасы: старые классы в неперенесённых экранах не падают --- */
         primary: {
-          DEFAULT: '#00814B',
-          hover: '#00603A',
-          light: '#E8F6EF',
+          DEFAULT: 'rgb(var(--brand-ink-rgb) / <alpha-value>)',
+          hover: 'rgb(var(--brand-deep-rgb) / <alpha-value>)',
+          light: 'rgb(var(--brand-tint-rgb) / <alpha-value>)',
         },
         bg: {
-          main: '#FAFAF8',
-          section: '#F2F2EF',
-          card: '#FFFFFF',
-          overlay: 'rgba(16, 16, 15, 0.56)',
+          main: 'rgb(var(--canvas-rgb) / <alpha-value>)',
+          section: 'rgb(var(--sunken-rgb) / <alpha-value>)',
+          card: 'rgb(var(--paper-rgb) / <alpha-value>)',
+          overlay: 'rgb(var(--ink-rgb) / 0.56)',
         },
         text: {
-          primary: '#10100F',
-          secondary: '#5B5B56',
-          accent: '#00814B',
+          primary: 'rgb(var(--ink-rgb) / <alpha-value>)',
+          secondary: 'rgb(var(--ink-muted-rgb) / <alpha-value>)',
+          accent: 'rgb(var(--brand-ink-rgb) / <alpha-value>)',
         },
         border: {
-          DEFAULT: '#E6E6E1',
-          light: '#F0F0EC',
+          DEFAULT: 'rgb(var(--hairline-rgb) / <alpha-value>)',
+          light: 'rgb(var(--hairline-soft-rgb) / <alpha-value>)',
         },
         grey: {
-          DEFAULT: '#F2F2EF',
-          secondary: '#F0F0EC',
+          DEFAULT: 'rgb(var(--sunken-rgb) / <alpha-value>)',
+          secondary: 'rgb(var(--hairline-soft-rgb) / <alpha-value>)',
         },
       },
 
