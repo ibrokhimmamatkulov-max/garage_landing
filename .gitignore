@@ -26,3 +26,4 @@ dist-ssr
 .agents
 .env
 coverage
+.gstack/

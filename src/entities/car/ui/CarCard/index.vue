@@ -119,9 +119,9 @@ function handleTouchEnd(event: TouchEvent) {
       <CarSpecs :car="car" />
 
       <div class="mt-auto pt-xs">
-        <p class="text-price font-extrabold text-ink">
+        <p class="flex flex-wrap items-baseline gap-x-1.5 text-price font-extrabold text-ink">
           <span class="tnum">{{ car.pricePerDay }}</span>
-          <span class="text-body font-semibold text-ink-muted"> {{ car.currency }} / сутки</span>
+          <span class="text-body font-semibold text-ink-muted">{{ car.currency }} / сутки</span>
         </p>
         <p v-if="priceNote" class="tnum mt-0.5 text-caption text-ink-soft">{{ priceNote }}</p>
 

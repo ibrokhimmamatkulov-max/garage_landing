@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { type Car, CarCard } from '@/entities/car';
 
 defineOptions({
@@ -27,21 +27,23 @@ const emit = defineEmits<{
 }>();
 
 const triggerRef = ref<HTMLElement | null>(null);
+const gridRef = ref<HTMLElement | null>(null);
 let observer: IntersectionObserver | null = null;
+let resizeObserver: ResizeObserver | null = null;
 
-const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1200);
+/**
+ * Сетка раскладывается через auto-fill, поэтому число колонок нельзя угадать
+ * по брейкпоинтам — иначе промо-баннер врезается в середину ряда.
+ * Читаем фактическую раскладку из вычисленных стилей.
+ */
+const columnsCount = ref(1);
 
-function handleResize() {
-  windowWidth.value = window.innerWidth;
+function measureColumns() {
+  if (!gridRef.value) return;
+  const template = getComputedStyle(gridRef.value).gridTemplateColumns;
+  const count = template.split(' ').filter(Boolean).length;
+  columnsCount.value = Math.max(1, count);
 }
-
-const columnsCount = computed(() => {
-  const w = windowWidth.value;
-  if (w >= 1440) return 4;
-  if (w >= 1056) return 3;
-  if (w >= 712) return 2;
-  return 1;
-});
 
 function setupObserver() {
   observer?.disconnect();
@@ -62,16 +64,25 @@ function setupObserver() {
 
 onMounted(() => {
   setupObserver();
-  window.addEventListener('resize', handleResize);
-  handleResize();
+  measureColumns();
+
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(measureColumns);
+    if (gridRef.value) resizeObserver.observe(gridRef.value);
+  }
 });
 
 onUnmounted(() => {
   observer?.disconnect();
-  window.removeEventListener('resize', handleResize);
+  resizeObserver?.disconnect();
 });
 
 watch(triggerRef, setupObserver);
+
+watch(gridRef, (el) => {
+  measureColumns();
+  if (el && resizeObserver) resizeObserver.observe(el);
+});
 </script>
 
 <template>
@@ -146,7 +157,10 @@ watch(triggerRef, setupObserver);
       </div>
 
       <div v-else>
-        <div class="grid grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-base sm:gap-lg">
+        <div
+          ref="gridRef"
+          class="grid grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-base sm:gap-lg"
+        >
           <template v-for="(car, index) in cars" :key="car.id">
             <CarCard
               :car="car"

@@ -60,7 +60,8 @@ const STORAGE_BASE = (
 
 const formatPhotoUrl = (url: string) => {
   if (!url) return PLACEHOLDER_IMAGE;
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // Абсолютные адреса и data/blob отдаём как есть — приклеивать к ним домен нельзя
+  if (/^(https?:|data:|blob:)/.test(url)) return url;
 
   const cleanUrl = url.startsWith('/') ? url.substring(1) : url;
 
