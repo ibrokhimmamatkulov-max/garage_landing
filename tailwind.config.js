@@ -9,8 +9,9 @@ export default {
          * Благодаря <alpha-value> работают и bg-brand, и bg-brand/25.
          * Смена палитры = подмена переменных в :root, без пересборки конфига.
          *
-         * Роли: brand.DEFAULT — заливки и индикаторы, под белым текстом
-         * его ставить нельзя (2.84:1). Под текст и кнопки — brand.ink (4.95:1).
+         * Роли: brand.DEFAULT — заливки, индикаторы, знак в логотипе.
+         * brand.ink — рабочий цвет кнопок, ссылок и акцентного текста.
+         * Конкретные значения и их контрасты живут в global.css.
          */
         brand: {
           DEFAULT: 'rgb(var(--brand-rgb) / <alpha-value>)',
@@ -117,7 +118,7 @@ export default {
         header: '0 1px 0 0 rgba(16, 16, 15, 0.06)',
         card: '0 12px 28px -12px rgba(16, 16, 15, 0.22)',
         modal: '0 32px 64px -24px rgba(16, 16, 15, 0.34)',
-        'focus-brand': '0 0 0 3px rgba(0, 176, 103, 0.18)',
+        'focus-brand': '0 0 0 3px rgb(var(--brand-rgb) / 0.2)',
       },
 
       transitionDuration: {
