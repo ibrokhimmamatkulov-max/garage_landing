@@ -5,6 +5,7 @@ export interface ApiCarData {
   brand: string;
   model: string;
   year: number;
+  listing_type?: 'taxi' | 'general';
   city: {
     id: number | null;
     name: string | null;
@@ -50,22 +51,24 @@ export interface ApiCarData {
   performer_id?: number | null;
 }
 
-const PLACEHOLDER_IMAGE = 'https://placehold.co/600x400/e5e7eb/6b7280?text=Car+Photo';
+const PLACEHOLDER_IMAGE = 'https://placehold.co/800x600/f2f2ef/8c8c86?text=%20';
+
+/** Домен больше не зашит в код — см. .env.example */
+const STORAGE_BASE = (
+  import.meta.env.VITE_STORAGE_BASE_URL || 'https://auto-baza.gram.tj'
+).replace(/\/+$/, '');
 
 const formatPhotoUrl = (url: string) => {
   if (!url) return PLACEHOLDER_IMAGE;
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
 
-  // Очищаем от ведущего слэша
   const cleanUrl = url.startsWith('/') ? url.substring(1) : url;
 
-  // Если бэкенд возвращает путь с storage/ в начале, то добавляем только домен
   if (cleanUrl.startsWith('storage/')) {
-    return `https://auto-baza.gram.tj/${cleanUrl}`;
+    return `${STORAGE_BASE}/${cleanUrl}`;
   }
 
-  // Иначе (например, если возвращается cars/image.png) добавляем storage/
-  return `https://auto-baza.gram.tj/storage/${cleanUrl}`;
+  return `${STORAGE_BASE}/storage/${cleanUrl}`;
 };
 
 export function mapCar(apiData: ApiCarData): Car {
@@ -92,9 +95,6 @@ export function mapCar(apiData: ApiCarData): Car {
     weekendDays = Number(firstTariff.free_weekend_day) || 0;
   }
 
-  const idNum = Number(apiData.id) || 1;
-  const rating = 4.2 + (idNum % 8) * 0.1;
-
   // Депозит берется из первого тарифа или из свойств машины (если переданы бэкендом)
   const firstTariffDeposit = apiData.tariffs?.[0]?.deposit ?? apiData.deposit;
   const firstTariffDepositPerDay =
@@ -114,13 +114,12 @@ export function mapCar(apiData: ApiCarData): Car {
     brand: apiData.brand || '',
     model: apiData.model || '',
     year: Number(apiData.year) || new Date().getFullYear(),
-    rating: Number(rating.toFixed(1)),
+    listingType: apiData.listing_type === 'general' ? 'general' : 'taxi',
     transmission: apiData.gearbox?.name || 'Автомат',
     fuelType: apiData.fuel_type?.name || 'Бензин',
     carClass: apiData.body_type?.name || 'Эконом',
-    taxiPark: apiData.performer_id ? `Партнёр #${apiData.performer_id}` : 'Gram Гараж',
     pricePerDay,
-    currency: 'сомон',
+    currency: 'сомони',
     deposit,
     depositPerDay,
     minRentDays: Number(apiData.min_rent_days) || 3,

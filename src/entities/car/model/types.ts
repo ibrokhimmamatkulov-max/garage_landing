@@ -37,16 +37,18 @@ export interface CarTariff {
   depositPerDay?: number;
 }
 
+export type CarListingType = 'taxi' | 'general';
+
 export interface Car {
   id: string;
   brand: string;
   model: string;
   year: number;
-  rating: number;
+  /** 'taxi' — старая таксопарковая схема N/M, 'general' — обычная посуточная аренда */
+  listingType: CarListingType;
   transmission: string;
   fuelType: string;
   carClass: string;
-  taxiPark: string;
   pricePerDay: number;
   currency: string;
   deposit?: number;
@@ -79,4 +81,14 @@ export interface CarFilters {
   sort: 'price_asc' | 'price_desc' | 'year_asc' | 'year_desc' | null;
   page?: number;
   perPage?: number;
+  /** Гараж 2.0 */
+  listingType?: CarListingType | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  priceFrom?: number | null;
+  priceTo?: number | null;
+  brandId?: number | null;
+  bodyTypeId?: number | null;
+  yearFrom?: number | null;
+  yearTo?: number | null;
 }

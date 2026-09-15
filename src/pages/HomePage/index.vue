@@ -58,12 +58,27 @@ function handleApplicationSuccess() {
 function handleDetails(car: Car) {
   router.push({ name: 'car', params: { id: car.id } });
 }
+
+function handleResetFilters() {
+  carStore.applyFilters({
+    gearboxId: null,
+    fuelTypeId: null,
+    tariffId: null,
+    durationDays: null,
+    listingType: null,
+    priceFrom: null,
+    priceTo: null,
+    brandId: null,
+    bodyTypeId: null,
+    sort: 'price_asc',
+  });
+}
 </script>
 
 <template>
-  <div class="flex flex-col min-h-screen bg-bg-section">
+  <div class="flex min-h-screen flex-col bg-surface-canvas">
     <AppHeader @open-filters="handleOpenFilters" />
-    <HeroBanner />
+    <HeroBanner @open-filters="handleOpenFilters" />
 
     <CarCatalog
       :cars="carStore.cars"
@@ -73,6 +88,7 @@ function handleDetails(car: Car) {
       @apply="handleApply"
       @details="handleDetails"
       @load-more="handleLoadMore"
+      @reset-filters="handleResetFilters"
     >
       <template #promo>
         <PromoBanner is-embedded />

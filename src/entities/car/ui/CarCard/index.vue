@@ -18,13 +18,26 @@ defineEmits<{
 
 const currentImageIndex = ref(0);
 
-const imageCounter = computed(() => {
-  const total = props.car.images.length;
-  return `${currentImageIndex.value + 1} / ${total}`;
-});
+const currentImage = computed(
+  () => props.car.images[currentImageIndex.value] ?? props.car.images[0],
+);
 
-const currentImage = computed(() => {
-  return props.car.images[currentImageIndex.value] ?? props.car.images[0];
+const hasManyImages = computed(() => props.car.images.length > 1);
+
+const isTaxiListing = computed(() => props.car.listingType === 'taxi');
+
+/** Строка под ценой: у обычной аренды — срок и депозит, у такси — старая схема N/M */
+const priceNote = computed(() => {
+  if (isTaxiListing.value) {
+    return `схема ${props.car.workDays} / ${props.car.weekendDays}`;
+  }
+
+  const parts: string[] = [];
+  if (props.car.minRentDays > 1) parts.push(`от ${props.car.minRentDays} сут.`);
+  if (props.car.deposit !== undefined && props.car.deposit !== null) {
+    parts.push(props.car.deposit > 0 ? `депозит ${props.car.deposit}` : 'без депозита');
+  }
+  return parts.join(' · ');
 });
 
 let touchStartX = 0;
@@ -34,111 +47,97 @@ function handleTouchStart(event: TouchEvent) {
 }
 
 function handleTouchEnd(event: TouchEvent) {
-  const touchEndX = event.changedTouches[0].clientX;
-  const diffX = touchEndX - touchStartX;
+  const diffX = event.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(diffX) <= 50) return;
 
-  if (Math.abs(diffX) > 50) {
-    if (diffX < 0) {
-      if (currentImageIndex.value < props.car.images.length - 1) {
-        currentImageIndex.value++;
-      } else {
-        currentImageIndex.value = 0;
-      }
-    } else {
-      if (currentImageIndex.value > 0) {
-        currentImageIndex.value--;
-      } else {
-        currentImageIndex.value = props.car.images.length - 1;
-      }
-    }
+  const last = props.car.images.length - 1;
+  if (diffX < 0) {
+    currentImageIndex.value = currentImageIndex.value < last ? currentImageIndex.value + 1 : 0;
+  } else {
+    currentImageIndex.value = currentImageIndex.value > 0 ? currentImageIndex.value - 1 : last;
   }
 }
 </script>
 
 <template>
   <article
-    class="min-w-0 w-full bg-bg-card rounded-radius-lg border border-border-light overflow-hidden transition-shadow duration-base hover:shadow-card"
+    class="group flex min-w-0 flex-col overflow-hidden rounded-radius-lg border border-hairline bg-surface-paper transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-transparent hover:shadow-lift"
     @mouseleave="currentImageIndex = 0"
   >
     <div
-      class="relative aspect-[16/10] overflow-hidden bg-bg-section group/image"
-      @touchstart="handleTouchStart"
-      @touchend="handleTouchEnd"
+      class="relative aspect-[4/3] shrink-0 overflow-hidden bg-surface-sunken"
+      @touchstart.passive="handleTouchStart"
+      @touchend.passive="handleTouchEnd"
     >
       <img
         :src="currentImage"
-        :alt="`${car.brand} ${car.model} ${car.year}`"
-        class="w-full h-full object-cover"
+        :alt="`${car.brand} ${car.model}, ${car.year}`"
+        loading="lazy"
+        decoding="async"
+        class="h-full w-full object-cover transition-transform duration-slow ease-out group-hover:scale-[1.03]"
       />
-      <span
-        class="absolute top-md right-md px-2.5 py-1 bg-black/60 text-white text-xs font-medium rounded-full z-20 pointer-events-none"
-        >{{ imageCounter }}</span
-      >
 
-      <!-- Зоны для переключения картинок при наведении (только если больше 1 картинки) -->
-      <div v-if="car.images.length > 1" class="absolute inset-0 hidden md:flex">
-        <div
+      <span
+        v-if="isTaxiListing"
+        class="absolute left-3 top-3 rounded-full bg-ink/75 px-2.5 py-1 text-caption font-semibold text-white backdrop-blur-sm"
+      >
+        Под такси
+      </span>
+
+      <!-- Невидимые зоны переключения кадров при наведении -->
+      <div v-if="hasManyImages" class="absolute inset-0 hidden md:flex">
+        <button
           v-for="(_, imgIdx) in car.images"
           :key="imgIdx"
-          class="h-full flex-1 z-10"
+          class="h-full flex-1 cursor-default"
+          tabindex="-1"
+          :aria-label="`Фото ${imgIdx + 1}`"
           @mouseenter="currentImageIndex = imgIdx"
         />
       </div>
 
-      <!-- Индикаторы (точки/полоски) внизу картинки -->
       <div
-        v-if="car.images.length > 1"
-        class="absolute bottom-md left-1/2 -translate-x-1/2 flex gap-[4px] z-10 w-[calc(100%-24px)] justify-center pointer-events-none"
+        v-if="hasManyImages"
+        class="pointer-events-none absolute inset-x-3 bottom-3 flex gap-1"
+        aria-hidden="true"
       >
-        <div
+        <span
           v-for="(_, imgIdx) in car.images"
           :key="imgIdx"
-          class="h-[3px] flex-1 max-w-[20px] rounded-full transition-all duration-base"
-          :class="imgIdx === currentImageIndex ? 'bg-primary' : 'bg-white/20 blur-[2px]'"
+          class="h-[3px] flex-1 rounded-full transition-colors duration-base"
+          :class="imgIdx === currentImageIndex ? 'bg-white' : 'bg-white/35'"
         />
       </div>
     </div>
 
-    <div class="p-base">
-      <div class="mb-md">
-        <h3 class="text-[24px] font-semibold text-text-primary leading-[24px]">
-          {{ car.brand }} {{ car.model }} {{ car.year }}
-        </h3>
-        <p class="font-normal leading-5 text-text-secondary mt-xs">
-          Рейтинг модели <strong class="font-bold text-text-primary">{{ car.rating }}</strong>
-        </p>
-      </div>
+    <div class="flex flex-1 flex-col gap-md p-base">
+      <h3 class="text-title-sm font-bold text-ink">
+        {{ car.brand }} {{ car.model }}
+        <span class="tnum font-semibold text-ink-soft">· {{ car.year }}</span>
+      </h3>
 
       <CarSpecs :car="car" />
 
-      <div class="mt-base">
-        <div class="mb-[2px]">
-          <span class="text-[22px] font-bold text-text-primary"
-            >{{ car.pricePerDay }} {{ car.currency }}</span
-          >
-          <span class="text-text-secondary">/день</span>
-        </div>
-        <p class="text-[13px] text-text-secondary mb-lg">
-          Аренда · {{ car.workDays }}/{{ car.weekendDays }}
+      <div class="mt-auto pt-xs">
+        <p class="text-price font-extrabold text-ink">
+          <span class="tnum">{{ car.pricePerDay }}</span>
+          <span class="text-body font-semibold text-ink-muted"> {{ car.currency }} / сутки</span>
         </p>
+        <p v-if="priceNote" class="tnum mt-0.5 text-caption text-ink-soft">{{ priceNote }}</p>
 
-        <div class="flex gap-sm">
-          <DButton
-            theme="primary"
-            size="md"
-            class="!h-[48px] !rounded-[12px] !text-[15px] !font-semibold !whitespace-nowrap !px-2 !flex-[1.45]"
+        <div class="mt-md flex gap-sm">
+          <button
+            class="flex-1 rounded-radius-md bg-brand-ink px-3 py-2.5 text-small font-semibold text-white transition-colors duration-fast hover:bg-brand-deep"
             @click="$emit('apply', car)"
           >
             Оставить заявку
-          </DButton>
-          <DButton
-            theme="secondary"
-            size="md"
-            class="!h-[48px] !rounded-[12px] !text-[15px] !font-semibold !whitespace-nowrap !px-2 !flex-1"
+          </button>
+          <button
+            class="shrink-0 rounded-radius-md border border-hairline px-3.5 py-2.5 text-small font-semibold text-ink transition-colors duration-fast hover:border-hairline-strong hover:bg-surface-sunken"
             @click="$emit('details', car)"
           >
-            Подробнее
-          </DButton>
+            Ещё
+          </button>
         </div>
       </div>
     </div>

@@ -1,43 +1,38 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { Car } from '../../model/types';
-import { AppIcon } from '@/shared/ui';
 
 defineOptions({
   name: 'CarSpecs',
 });
 
-defineProps<{
+const props = defineProps<{
   car: Car;
 }>();
+
+/**
+ * Раньше это был вертикальный список из трёх строк по 40px с серыми плашками
+ * иконок — половина высоты карточки уходила на то, что читается одним взглядом.
+ * Теперь компактные теги в одну-две строки, место отдано цене.
+ */
+const tags = computed(() =>
+  [
+    props.car.transmission,
+    props.car.fuelType,
+    props.car.bodyType?.name || props.car.carClass,
+    props.car.countSeat ? `${props.car.countSeat} мест` : null,
+  ].filter((value): value is string => Boolean(value)),
+);
 </script>
 
 <template>
-  <div class="flex flex-col border-t border-border-light">
-    <div class="flex items-center gap-md py-2.5 border-b border-border-light">
-      <div class="flex items-center justify-center w-8 h-8 rounded-radius-md !bg-grey shrink-0">
-        <AppIcon class="shrink-0 text-text-secondary" name="settings" :size="20" />
-      </div>
-      <span
-        >Коробка передач: <strong>{{ car.transmission }}</strong></span
-      >
-    </div>
-
-    <div class="flex items-center gap-md py-2.5 border-b border-border-light">
-      <div class="flex items-center justify-center w-8 h-8 rounded-radius-md !bg-grey shrink-0">
-        <AppIcon class="shrink-0 text-text-secondary fill-text-secondary" name="car" :size="20" />
-      </div>
-      <span
-        >Тип топлива: <strong>{{ car.fuelType }}</strong></span
-      >
-    </div>
-
-    <div class="flex items-center gap-md py-2.5 border-b border-border-light">
-      <div class="flex items-center justify-center w-8 h-8 rounded-radius-md !bg-grey shrink-0">
-        <AppIcon class="shrink-0 text-text-secondary" name="star" :size="20" />
-      </div>
-      <span
-        >Кузов: <strong>{{ car.bodyType?.name || car.carClass }}</strong></span
-      >
-    </div>
-  </div>
+  <ul class="flex flex-wrap gap-1.5">
+    <li
+      v-for="tag in tags"
+      :key="tag"
+      class="rounded-radius-sm bg-surface-sunken px-2 py-1 text-caption font-medium text-ink-muted"
+    >
+      {{ tag }}
+    </li>
+  </ul>
 </template>
