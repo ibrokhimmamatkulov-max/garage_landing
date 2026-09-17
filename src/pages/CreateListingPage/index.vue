@@ -10,7 +10,14 @@ import TextField from '@/shared/ui/TextField/index.vue';
 import DocumentCheck from '@/features/create-listing/ui/DocumentCheck/index.vue';
 import PriceTiers from '@/features/create-listing/ui/PriceTiers/index.vue';
 import PhotoUploader from '@/features/create-listing/ui/PhotoUploader/index.vue';
-import { emptyDraft, loadDraft, saveDraft, type ListingDraft } from '@/features/create-listing/model/draft';
+import AuthModal from '@/features/auth-otp/ui/AuthModal/index.vue';
+import {
+  clearDraft,
+  emptyDraft,
+  loadDraft,
+  saveDraft,
+  type ListingDraft,
+} from '@/features/create-listing/model/draft';
 
 defineOptions({
   name: 'CreateListingPage',
@@ -129,11 +136,30 @@ const minPrice = computed(() => {
   return prices.length ? Math.min(...prices) : null;
 });
 
-async function submit() {
+/**
+ * Авторизация — последним шагом и НЕ уходом на отдельную страницу.
+ * Человек только что заполнил 25 полей: увести его со своего экрана значит
+ * порвать контекст и напугать потерей заполненного. Окно открывается поверх,
+ * форма остаётся на месте.
+ */
+const authOpen = ref(false);
+
+function submit() {
   if (!canSubmit.value) return;
+  authOpen.value = true;
+}
+
+async function onAuthSuccess() {
+  authOpen.value = false;
   submitting.value = true;
-  // Публикация требует входа — авторизация последним шагом, по ТЗ §6.2
-  router.push({ name: 'login', query: { next: '/cabinet', publish: '1' } });
+  try {
+    // Здесь уйдёт POST /owner/listings с уже полученным токеном,
+    // затем догрузка фотографий и документов.
+    clearDraft();
+    router.push({ name: 'cabinet', query: { published: '1' } });
+  } finally {
+    submitting.value = false;
+  }
 }
 </script>
 
@@ -422,5 +448,14 @@ async function submit() {
     </div>
 
     <AppFooter />
+
+    <AuthModal
+      v-if="authOpen"
+      title="Остался один шаг"
+      subtitle="Подтвердите номер — по нему вы будете управлять объявлением и получать заявки."
+      confirm-label="Опубликовать"
+      @close="authOpen = false"
+      @success="onAuthSuccess"
+    />
   </div>
 </template>
