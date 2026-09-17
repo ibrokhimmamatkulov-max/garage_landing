@@ -44,27 +44,6 @@ export const router = createRouter({
       component: () => import('@/pages/CabinetPage/index.vue'),
       meta: { requiresOwner: true },
     },
-
-    /*
-     * Админка менеджера. Живёт в этом же приложении отдельным разделом:
-     * репозиторий существующей админки недоступен, а CRM нужна сейчас.
-     * При переезде в отдельное приложение раздел снимается целиком.
-     */
-    {
-      path: '/admin',
-      name: 'admin-applications',
-      component: () => import('@/pages/AdminApplicationsPage/index.vue'),
-    },
-    {
-      path: '/admin/listings',
-      name: 'admin-listings',
-      component: () => import('@/pages/AdminListingsPage/index.vue'),
-    },
-    {
-      path: '/admin/owners',
-      name: 'admin-owners',
-      component: () => import('@/pages/AdminOwnersPage/index.vue'),
-    },
   ],
   scrollBehavior(_to, _from, savedPosition) {
     if (savedPosition) {

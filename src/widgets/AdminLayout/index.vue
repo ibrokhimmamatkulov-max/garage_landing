@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useManagerStore } from '@/entities/manager/model/store';
 import { AppLogo } from '@/shared/ui';
 
 defineOptions({
@@ -18,10 +21,22 @@ defineProps<{
  * здесь важнее плотность и постоянная навигация, а не воздух.
  */
 const NAV = [
-  { to: '/admin', label: 'Заявки', exact: true },
-  { to: '/admin/listings', label: 'Объявления', exact: false },
-  { to: '/admin/owners', label: 'Арендодатели', exact: false },
+  { to: '/', label: 'Заявки' },
+  { to: '/listings', label: 'Объявления' },
+  { to: '/owners', label: 'Арендодатели' },
 ];
+
+const router = useRouter();
+const store = useManagerStore();
+
+onMounted(() => {
+  if (!store.manager) store.loadMe();
+});
+
+function signOut() {
+  store.signOut();
+  router.replace({ name: 'admin-login' });
+}
 </script>
 
 <template>
@@ -31,9 +46,9 @@ const NAV = [
       class="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-hairline bg-surface-paper lg:flex"
     >
       <div class="border-b border-hairline px-lg py-base">
-        <router-link to="/" class="flex items-center gap-2 text-ink no-underline">
+        <div class="flex items-center gap-2 text-ink">
           <AppLogo size="sm" />
-        </router-link>
+        </div>
         <p class="mt-1 text-caption font-semibold uppercase tracking-[0.1em] text-ink-soft">
           Администрирование
         </p>
@@ -45,35 +60,47 @@ const NAV = [
           :key="item.to"
           :to="item.to"
           class="rounded-radius-md px-3.5 py-2.5 text-small font-semibold no-underline transition-colors duration-fast"
-          active-class="bg-brand-tint text-brand-ink"
-          :exact-active-class="item.exact ? 'bg-brand-tint text-brand-ink' : ''"
+          exact-active-class="bg-brand-tint text-brand-ink"
         >
           {{ item.label }}
         </router-link>
       </nav>
 
       <div class="border-t border-hairline p-sm">
-        <router-link
-          to="/"
-          class="block rounded-radius-md px-3.5 py-2.5 text-small text-ink-muted no-underline transition-colors duration-fast hover:bg-surface-sunken hover:text-ink"
+        <p class="truncate px-3.5 py-1 text-caption text-ink-soft">
+          {{ store.manager?.displayName ?? '—' }}
+        </p>
+        <button
+          class="w-full rounded-radius-md px-3.5 py-2.5 text-left text-small font-semibold text-ink-muted transition-colors duration-fast hover:bg-surface-sunken hover:text-ink"
+          @click="signOut"
         >
-          ← На витрину
-        </router-link>
+          Выйти
+        </button>
       </div>
     </aside>
 
     <div class="flex min-w-0 flex-1 flex-col">
       <!-- Меню для узких экранов -->
-      <nav class="scroll-x flex gap-1 border-b border-hairline bg-surface-paper px-base py-2 lg:hidden">
-        <router-link
-          v-for="item in NAV"
-          :key="item.to"
-          :to="item.to"
-          class="shrink-0 rounded-full px-3.5 py-2 text-small font-semibold no-underline transition-colors duration-fast"
-          active-class="bg-brand-tint text-brand-ink"
+      <nav
+        class="flex items-center justify-between gap-sm border-b border-hairline bg-surface-paper px-base py-2 lg:hidden"
+      >
+        <div class="scroll-x flex gap-1">
+          <router-link
+            v-for="item in NAV"
+            :key="item.to"
+            :to="item.to"
+            class="shrink-0 rounded-full px-3.5 py-2 text-small font-semibold no-underline transition-colors duration-fast"
+            exact-active-class="bg-brand-tint text-brand-ink"
+          >
+            {{ item.label }}
+          </router-link>
+        </div>
+        <button
+          class="shrink-0 text-small font-semibold text-ink-muted transition-colors duration-fast hover:text-ink"
+          @click="signOut"
         >
-          {{ item.label }}
-        </router-link>
+          Выйти
+        </button>
       </nav>
 
       <header class="border-b border-hairline bg-surface-paper px-base py-lg sm:px-lg">

@@ -88,7 +88,37 @@ export const APPLICATIONS = Array.from({ length: 34 }, (_, i) => {
   };
 });
 
+const MANAGER = {
+  id: 7,
+  login: 'manager',
+  first_name: 'Диловар',
+  last_name: 'Шарипов',
+  roles: [{ name: 'manager' }],
+};
+
 export function adminRoutes(pathname: string, url: URL, body: Record<string, unknown>) {
+  // --- Вход менеджера ---
+  if (pathname === '/api/auth/login') {
+    const login = String(body.login ?? '');
+    const password = String(body.password ?? '');
+
+    // В превью пускаем по любой непустой паре, кроме заведомо неверной —
+    // чтобы можно было проверить и успешный вход, и показ ошибки
+    if (!login || !password || password === 'wrong') {
+      return { success: false, code: 401, message: 'Unauthorized' };
+    }
+
+    return ok({
+      access_token: 'preview-manager-token',
+      token_type: 'Bearer',
+      user: { ...MANAGER, login },
+    });
+  }
+
+  if (pathname === '/api/user') {
+    return ok(MANAGER);
+  }
+
   if (pathname === '/api/rental-applications/summary') {
     return ok({
       total: APPLICATIONS.length,

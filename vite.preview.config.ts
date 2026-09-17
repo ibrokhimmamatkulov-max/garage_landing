@@ -2,6 +2,7 @@ import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { mockApi } from './preview/mock-api';
+import { adminDevRoute } from './preview/admin-dev-route';
 
 /**
  * Конфиг ТОЛЬКО для визуального превью главного экрана.
@@ -15,7 +16,7 @@ import { mockApi } from './preview/mock-api';
  *   npx vite --config vite.preview.config.ts
  */
 export default defineConfig({
-  plugins: [vue(), mockApi()],
+  plugins: [vue(), adminDevRoute(), mockApi()],
   resolve: {
     alias: [
       {
@@ -31,6 +32,16 @@ export default defineConfig({
         replacement: fileURLToPath(new URL('./src', import.meta.url)),
       },
     ],
+  },
+  build: {
+    // Те же две точки входа, что и в боевой сборке — чтобы разделение
+    // витрины и админки можно было проверить без приватного пакета
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        admin: fileURLToPath(new URL('./admin.html', import.meta.url)),
+      },
+    },
   },
   server: {
     port: 5180,

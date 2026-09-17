@@ -1,1 +1,1 @@
-export { apiInstance } from './instance';
+export { apiInstance, configureAuth, type AuthContext } from './instance';

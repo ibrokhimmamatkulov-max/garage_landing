@@ -321,7 +321,9 @@ export function mockApi(): Plugin {
           p.startsWith('/api/owner/') ||
           p.startsWith('/api/rental-applications') ||
           p === '/api/application-statuses' ||
-          p === '/api/cities';
+          p === '/api/cities' ||
+          p === '/api/auth/login' ||
+          p === '/api/user';
 
         if (needsBody) {
           const chunks: Buffer[] = [];

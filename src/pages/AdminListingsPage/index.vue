@@ -23,6 +23,9 @@ interface Offer {
   photos: string[];
 }
 
+/** Админка на своём домене, поэтому карточка открывается по абсолютной ссылке */
+const SITE_URL = (import.meta.env.VITE_SITE_URL || '').replace(/\/+$/, '');
+
 const rows = ref<Offer[]>([]);
 const total = ref(0);
 const loading = ref(false);
@@ -143,12 +146,14 @@ const filtered = computed(() => {
               {{ r.min_price ? `${r.min_price} с.` : '—' }}
             </td>
             <td class="px-base py-3 text-right align-middle">
-              <router-link
-                :to="`/car/${r.id}`"
+              <a
+                :href="`${SITE_URL}/car/${r.id}`"
+                target="_blank"
+                rel="noopener"
                 class="text-small font-semibold text-brand-ink no-underline transition-colors duration-fast hover:text-brand-deep"
               >
                 Открыть
-              </router-link>
+              </a>
             </td>
           </tr>
         </tbody>
