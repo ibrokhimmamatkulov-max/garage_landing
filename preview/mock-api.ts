@@ -1,4 +1,5 @@
 import type { Plugin } from 'vite';
+import { ownerRoutes } from './mock-owner';
 
 /**
  * Отдаёт /api/landing/* из локальных моков, чтобы превью главного экрана
@@ -27,6 +28,58 @@ const FUEL_TYPES = [
   { id: 3, name: 'Гибрид' },
   { id: 4, name: 'Электро' },
   { id: 5, name: 'Газ / бензин' },
+];
+
+const BRANDS = [
+  { id: 1, name: 'Chevrolet' },
+  { id: 2, name: 'Toyota' },
+  { id: 3, name: 'Hyundai' },
+  { id: 4, name: 'Kia' },
+  { id: 5, name: 'Changan' },
+  { id: 6, name: 'Geely' },
+  { id: 7, name: 'Chery' },
+  { id: 8, name: 'BYD' },
+  { id: 9, name: 'Nissan' },
+  { id: 10, name: 'Mercedes-Benz' },
+];
+
+const MODELS = [
+  { id: 11, car_model: 'Cobalt', car_brand_id: 1 },
+  { id: 12, car_model: 'Nexia', car_brand_id: 1 },
+  { id: 13, car_model: 'Malibu', car_brand_id: 1 },
+  { id: 21, car_model: 'Camry', car_brand_id: 2 },
+  { id: 22, car_model: 'Corolla', car_brand_id: 2 },
+  { id: 23, car_model: 'Land Cruiser Prado', car_brand_id: 2 },
+  { id: 31, car_model: 'Tucson', car_brand_id: 3 },
+  { id: 32, car_model: 'Elantra', car_brand_id: 3 },
+  { id: 41, car_model: 'Rio', car_brand_id: 4 },
+  { id: 42, car_model: 'Sportage', car_brand_id: 4 },
+  { id: 51, car_model: 'Alsvin', car_brand_id: 5 },
+  { id: 61, car_model: 'Emgrand', car_brand_id: 6 },
+  { id: 71, car_model: 'Tiggo 4', car_brand_id: 7 },
+  { id: 81, car_model: 'Song Plus', car_brand_id: 8 },
+  { id: 91, car_model: 'X-Trail', car_brand_id: 9 },
+  { id: 101, car_model: 'E 200', car_brand_id: 10 },
+];
+
+const BODY_TYPES = [
+  { id: 1, name: 'Седан' },
+  { id: 2, name: 'Хэтчбек' },
+  { id: 3, name: 'Кроссовер' },
+  { id: 4, name: 'Универсал' },
+  { id: 5, name: 'Минивэн' },
+  { id: 6, name: 'Пикап' },
+];
+
+const COLORS = [
+  { id: 1, name: 'Белый' },
+  { id: 2, name: 'Чёрный' },
+  { id: 3, name: 'Серебристый' },
+  { id: 4, name: 'Серый' },
+  { id: 5, name: 'Синий' },
+  { id: 6, name: 'Красный' },
+  { id: 7, name: 'Зелёный' },
+  { id: 8, name: 'Бежевый' },
 ];
 
 const TARIFFS = [
@@ -262,11 +315,44 @@ export function mockApi(): Plugin {
           res.end(JSON.stringify(payload));
         };
 
+        // Кабинет арендодателя — собирает тело запроса, ему нужны POST/PATCH
+        if (p.startsWith('/api/owner/')) {
+          const chunks: Buffer[] = [];
+          req.on('data', (c) => chunks.push(c as Buffer));
+          req.on('end', () => {
+            let body: Record<string, unknown> = {};
+            if (chunks.length) {
+              try {
+                body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+              } catch {
+                body = {};
+              }
+            }
+            const result = ownerRoutes(p, url, body);
+            if (!result) {
+              res.statusCode = 404;
+              return send({ success: false, code: 404, message: 'Не найдено.' });
+            }
+            if (!result.success) res.statusCode = result.code;
+            send(result);
+          });
+          return;
+        }
+
         if (p === '/api/landing/cities') return send(ok(CITIES));
         if (p === '/api/landing/cities/default') return send(ok({ id: 1, name: 'Худжанд' }));
         if (p === '/api/landing/gearboxes') return send(ok(GEARBOXES));
         if (p === '/api/landing/fuel-types') return send(ok(FUEL_TYPES));
         if (p === '/api/landing/rental-tariffs') return send(ok(TARIFFS));
+        if (p === '/api/landing/car-brands') return send(ok(BRANDS));
+        if (p === '/api/landing/body-types') return send(ok(BODY_TYPES));
+        if (p === '/api/landing/colors') return send(ok(COLORS));
+        if (p === '/api/landing/car-models') {
+          const brandId = url.searchParams.get('brand_id');
+          return send(
+            ok(brandId ? MODELS.filter((m) => m.car_brand_id === Number(brandId)) : MODELS),
+          );
+        }
 
         if (p === '/api/landing/offers') {
           const perPage = Number(url.searchParams.get('per_page') ?? 12);
