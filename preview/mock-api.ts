@@ -1,5 +1,6 @@
 import type { Plugin } from 'vite';
 import { ownerRoutes } from './mock-owner';
+import { adminRoutes } from './mock-admin';
 
 /**
  * Отдаёт /api/landing/* из локальных моков, чтобы превью главного экрана
@@ -315,8 +316,14 @@ export function mockApi(): Plugin {
           res.end(JSON.stringify(payload));
         };
 
-        // Кабинет арендодателя — собирает тело запроса, ему нужны POST/PATCH
-        if (p.startsWith('/api/owner/')) {
+        // Админка менеджера и кабинет владельца — обеим нужно тело запроса
+        const needsBody =
+          p.startsWith('/api/owner/') ||
+          p.startsWith('/api/rental-applications') ||
+          p === '/api/application-statuses' ||
+          p === '/api/cities';
+
+        if (needsBody) {
           const chunks: Buffer[] = [];
           req.on('data', (c) => chunks.push(c as Buffer));
           req.on('end', () => {
@@ -328,7 +335,9 @@ export function mockApi(): Plugin {
                 body = {};
               }
             }
-            const result = ownerRoutes(p, url, body);
+            const result = p.startsWith('/api/owner/')
+              ? ownerRoutes(p, url, body)
+              : adminRoutes(p, url, body);
             if (!result) {
               res.statusCode = 404;
               return send({ success: false, code: 404, message: 'Не найдено.' });
