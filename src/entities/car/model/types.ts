@@ -28,6 +28,14 @@ export interface CarDopOption {
   name: string;
 }
 
+/** Ступень цены обычной аренды: чем дольше срок, тем дешевле сутки */
+export interface CarPriceTier {
+  id: number;
+  minDays: number;
+  maxDays: number | null;
+  pricePerDay: number;
+}
+
 export interface CarTariff {
   id: number;
   durationDays: number;
@@ -70,6 +78,7 @@ export interface Car {
   fuelTypeObj?: CarFuelType;
   dopOptions?: CarDopOption[];
   tariffs?: CarTariff[];
+  priceTiers?: CarPriceTier[];
 }
 
 export interface CarFilters {

@@ -19,6 +19,9 @@ export async function submitApplication(
     offer_id: payload.offerId,
     tariff_id: payload.tariffId,
     comment: payload.comment,
+    desired_start_date: payload.desiredStartDate,
+    desired_end_date: payload.desiredEndDate,
+    allow_similar: payload.allowSimilar,
   });
 
   const responseData = response.data;

@@ -6,6 +6,12 @@ export interface ApiCarData {
   model: string;
   year: number;
   listing_type?: 'taxi' | 'general';
+  price_tiers?: Array<{
+    id: number;
+    min_days: number;
+    max_days: number | null;
+    price_per_day: number;
+  }>;
   city: {
     id: number | null;
     name: string | null;
@@ -141,6 +147,12 @@ export function mapCar(apiData: ApiCarData): Car {
     color: apiData.color || undefined,
     fuelTypeObj: apiData.fuel_type || undefined,
     dopOptions: apiData.dop_options,
+    priceTiers: apiData.price_tiers?.map((t) => ({
+      id: t.id,
+      minDays: Number(t.min_days),
+      maxDays: t.max_days !== null && t.max_days !== undefined ? Number(t.max_days) : null,
+      pricePerDay: Number(t.price_per_day),
+    })),
     tariffs: apiData.tariffs?.map((t) => ({
       id: t.id,
       durationDays: t.duration_days,
