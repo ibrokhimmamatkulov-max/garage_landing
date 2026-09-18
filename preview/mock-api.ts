@@ -405,6 +405,12 @@ export function mockApi(): Plugin {
           return send(ok(serialize(offer)));
         }
 
+        if (p === '/api/landing/apply/request-otp') {
+          return send(
+            ok({ expires_in: 300, delivery: 'stub', stub_code: '0000' }),
+          );
+        }
+
         if (p === '/api/landing/apply') {
           return send({ success: true, code: 201, message: 'Заявка принята.', data: { application_id: 1 } });
         }
