@@ -40,37 +40,26 @@ const isPhoneValid = computed(() => phone.value.replace(/\D/g, '').length >= 9);
 const isCodeValid = computed(() => code.value.replace(/\D/g, '').length >= 4);
 
 /**
- * Характеристики отдельными тегами, а не строкой через точки:
- * склеенные в предложение, они читаются как мелкий шрифт договора
- * и глаз по ним просто скользит.
+ * Тариф показываем, а не предлагаем выбрать.
+ *
+ * Владелец задаёт объявлению одну схему, так что выбирать арендатору нечего:
+ * выпадающий список создавал бы иллюзию выбора там, где его нет.
  */
-const specs = computed(() =>
-  [props.car.transmission, props.car.fuelType, props.car.bodyType?.name ?? props.car.carClass]
-    .filter(Boolean)
-    .slice(0, 3),
-);
-
-/** Условия сделки — то, что человеку важно знать до звонка */
-const conditions = computed<Array<{ label: string; value: string }>>(() => {
+const tariff = computed(() => {
   const car = props.car;
-  const out: Array<{ label: string; value: string }> = [];
 
   if (car.listingType === 'taxi') {
-    out.push({ label: 'Схема', value: `${car.workDays} / ${car.weekendDays}` });
-  } else {
-    out.push({ label: 'Минимальный срок', value: `${car.minRentDays} сут.` });
+    return `${car.workDays} / ${car.weekendDays} · ${car.pricePerDay} ${car.currency} в сутки`;
   }
 
-  if (car.deposit !== undefined && car.deposit !== null) {
-    out.push({
-      label: 'Депозит',
-      value: car.deposit > 0 ? `${car.deposit} сомони` : 'нет',
-    });
-  }
+  const from = car.minRentDays > 1 ? `от ${car.minRentDays} сут. · ` : '';
+  return `${from}${car.pricePerDay} ${car.currency} в сутки`;
+});
 
-  if (car.city?.name) out.push({ label: 'Город', value: car.city.name });
-
-  return out;
+const depositNote = computed(() => {
+  const d = props.car.deposit;
+  if (d === undefined || d === null) return null;
+  return d > 0 ? `Депозит ${d} ${props.car.currency}` : 'Без депозита';
 });
 
 async function sendCode() {
@@ -146,145 +135,109 @@ onUnmounted(() => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="apply-title"
-      class="w-full max-w-[25rem] overflow-hidden rounded-t-radius-2xl bg-surface-paper shadow-modal sm:rounded-radius-2xl"
+      class="w-full max-w-[25rem] rounded-t-radius-2xl bg-surface-paper p-lg shadow-modal sm:rounded-radius-2xl sm:p-xl"
     >
-      <!--
-        Шапка на бренде: даёт окну визуальный якорь и сразу отвечает на
-        вопрос «за что я плачу». Цена — самый крупный элемент, потому что
-        это единственное число, ради которого человек сюда нажал.
-      -->
-      <header class="relative bg-brand px-lg pb-lg pt-base">
+      <div class="flex items-start justify-between gap-md">
+        <h2 id="apply-title" class="max-w-[16rem] text-title font-bold leading-snug text-ink">
+          {{ step === 'phone' ? 'Оставьте номер для завершения брони' : 'Подтвердите номер' }}
+        </h2>
         <button
-          class="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full text-brand-on/60 transition-colors duration-fast hover:bg-brand-on/10 hover:text-brand-on"
+          class="-mr-2 -mt-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors duration-fast hover:bg-surface-sunken hover:text-ink"
           aria-label="Закрыть"
           @click="emit('close')"
         >
-          <svg width="15" height="15" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-          </svg>
+          <span class="flex h-8 w-8 items-center justify-center rounded-full bg-surface-sunken">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
+            </svg>
+          </span>
+        </button>
+      </div>
+
+      <!-- ---------- Шаг 1: номер ---------- -->
+      <template v-if="step === 'phone'">
+        <!-- Тариф: показан, а не выбирается — у объявления он один -->
+        <div class="mt-lg rounded-radius-lg bg-brand px-base py-3.5">
+          <p class="text-caption font-bold uppercase tracking-[0.08em] text-brand-on/65">
+            {{ car.brand }} {{ car.model }} · {{ car.year }}
+          </p>
+          <p class="tnum mt-1 text-title-sm font-extrabold text-brand-on">{{ tariff }}</p>
+          <p v-if="depositNote" class="tnum mt-0.5 text-caption font-semibold text-brand-on/70">
+            {{ depositNote }}
+          </p>
+        </div>
+
+        <input
+          id="ap-phone"
+          v-model="phone"
+          inputmode="tel"
+          placeholder="+992 00 000 00 00"
+          aria-label="Номер телефона"
+          class="tnum mt-md w-full rounded-radius-lg border-2 bg-surface-sunken px-base py-3.5 text-body-lg font-semibold text-ink transition-colors duration-fast placeholder:font-normal placeholder:text-ink-soft focus:bg-surface-paper focus:outline-none"
+          :class="error ? 'border-state-error' : 'border-transparent focus:border-brand-ink'"
+          @keyup.enter="sendCode"
+        />
+
+        <p v-if="error" class="mt-sm text-caption text-state-error">{{ error }}</p>
+
+        <p class="mt-lg text-center text-small font-semibold text-ink-muted">Это бесплатно</p>
+
+        <button
+          :disabled="!isPhoneValid || busy"
+          class="mt-md w-full rounded-radius-lg bg-brand py-4 text-body-lg font-bold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
+          @click="sendCode"
+        >
+          {{ busy ? 'Отправляем…' : 'Оставить заявку' }}
         </button>
 
-        <p class="text-caption font-bold uppercase tracking-[0.1em] text-brand-on/65">
-          Заявка на аренду
+        <!--
+          Согласие оставлено одной строкой вместо абзаца: сам текст убрать
+          нельзя — это обработка персональных данных, но занимать им треть
+          окна незачем.
+        -->
+        <p class="mt-md text-center text-caption leading-relaxed text-ink-soft">
+          Нажимая кнопку, вы соглашаетесь с
+          <a href="#" class="text-ink-muted underline">обработкой персональных данных</a>
+        </p>
+      </template>
+
+      <!-- ---------- Шаг 2: код ---------- -->
+      <template v-else>
+        <p class="tnum mt-2 text-small text-ink-muted">
+          Отправили на <span class="font-semibold text-ink">{{ phone }}</span>
         </p>
 
-        <p class="mt-2 pr-10 text-title-sm font-bold text-brand-on">
-          {{ car.brand }} {{ car.model }}
-          <span class="tnum font-semibold text-brand-on/60">· {{ car.year }}</span>
+        <input
+          id="ap-code"
+          v-model="code"
+          inputmode="numeric"
+          maxlength="4"
+          aria-label="Код из SMS"
+          class="tnum mt-lg w-full rounded-radius-lg border-2 bg-surface-sunken py-4 text-center text-display-sm font-extrabold tracking-[0.5em] text-ink transition-colors duration-fast focus:bg-surface-paper focus:outline-none"
+          :class="error ? 'border-state-error' : 'border-transparent focus:border-brand-ink'"
+          @keyup.enter="submit"
+        />
+
+        <p v-if="isStub" class="mt-sm text-center text-caption font-semibold text-state-warning">
+          Демо-режим: SMS не отправляется, код подставлен
         </p>
+        <p v-if="error" class="mt-sm text-center text-caption text-state-error">{{ error }}</p>
 
-        <p class="tnum mt-1 flex items-baseline gap-1.5 text-brand-on">
-          <span class="text-display-sm font-extrabold leading-none">{{ car.pricePerDay }}</span>
-          <span class="text-small font-bold">{{ car.currency }} / сутки</span>
-        </p>
-
-        <ul v-if="specs.length" class="mt-md flex flex-wrap gap-1.5">
-          <li
-            v-for="s in specs"
-            :key="s"
-            class="rounded-full bg-brand-on/10 px-2.5 py-1 text-caption font-semibold text-brand-on"
-          >
-            {{ s }}
-          </li>
-        </ul>
-      </header>
-
-      <!-- Условия: пары «что — сколько», а не строка через точки -->
-      <dl v-if="conditions.length" class="flex flex-col divide-y divide-hairline-soft px-lg">
-        <div
-          v-for="c in conditions"
-          :key="c.label"
-          class="flex items-center justify-between gap-md py-2.5"
+        <button
+          :disabled="!isCodeValid || busy"
+          class="mt-lg w-full rounded-radius-lg bg-brand py-4 text-body-lg font-bold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
+          @click="submit"
         >
-          <dt class="text-small text-ink-muted">{{ c.label }}</dt>
-          <dd class="tnum text-small font-bold text-ink">{{ c.value }}</dd>
-        </div>
-      </dl>
+          {{ busy ? 'Отправляем…' : 'Подтвердить' }}
+        </button>
 
-      <div class="border-t border-hairline px-lg py-lg">
-        <!-- ---------- Шаг 1: номер ---------- -->
-        <template v-if="step === 'phone'">
-          <h2 id="apply-title" class="text-title font-bold text-ink">Оставьте номер</h2>
-          <p class="mt-1 text-small text-ink-muted">
-            Владелец перезвонит и договорится об осмотре.
-          </p>
-
-          <input
-            id="ap-phone"
-            v-model="phone"
-            inputmode="tel"
-            placeholder="+992 __ ___ __ __"
-            aria-label="Номер телефона"
-            class="tnum mt-base w-full rounded-radius-md border bg-surface-paper px-base py-3.5 text-title-sm font-semibold text-ink transition-colors duration-fast placeholder:font-normal placeholder:text-ink-ghost focus:outline-none"
-            :class="
-              error
-                ? 'border-state-error'
-                : 'border-hairline focus:border-brand-ink focus:shadow-focus-brand'
-            "
-            @keyup.enter="sendCode"
-          />
-
-          <p v-if="error" class="mt-sm text-caption text-state-error">{{ error }}</p>
-
-          <button
-            :disabled="!isPhoneValid || busy"
-            class="mt-base w-full rounded-radius-md bg-ink py-3.5 text-body font-bold text-white transition-colors duration-fast hover:bg-ink-muted disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
-            @click="sendCode"
-          >
-            {{ busy ? 'Отправляем…' : 'Получить код' }}
-          </button>
-        </template>
-
-        <!-- ---------- Шаг 2: код ---------- -->
-        <template v-else>
-          <button
-            class="-ml-2 mb-2 inline-flex min-h-[44px] items-center gap-1.5 pl-2 pr-3 text-small font-semibold text-ink-soft transition-colors duration-fast hover:text-ink"
-            @click="back"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path d="M8.5 3L4.5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            Изменить номер
-          </button>
-
-          <h2 id="apply-title" class="text-title font-bold text-ink">Введите код</h2>
-          <p class="tnum mt-1 text-small text-ink-muted">
-            Отправили на <span class="font-semibold text-ink">{{ phone }}</span>
-          </p>
-
-          <!-- Поле кода: крупное, по центру, с разрядкой — как в SMS-подтверждениях -->
-          <input
-            id="ap-code"
-            v-model="code"
-            inputmode="numeric"
-            maxlength="4"
-            aria-label="Код из SMS"
-            class="tnum mt-base w-full rounded-radius-md border bg-surface-paper py-3.5 text-center text-display-sm font-extrabold tracking-[0.5em] text-ink transition-colors duration-fast focus:outline-none"
-            :class="
-              error
-                ? 'border-state-error'
-                : 'border-hairline focus:border-brand-ink focus:shadow-focus-brand'
-            "
-            @keyup.enter="submit"
-          />
-
-          <p
-            v-if="isStub"
-            class="mt-sm text-center text-caption font-semibold text-state-warning"
-          >
-            Демо-режим: SMS не отправляется, код подставлен
-          </p>
-          <p v-if="error" class="mt-sm text-caption text-state-error">{{ error }}</p>
-
-          <button
-            :disabled="!isCodeValid || busy"
-            class="mt-base w-full rounded-radius-md bg-ink py-3.5 text-body font-bold text-white transition-colors duration-fast hover:bg-ink-muted disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
-            @click="submit"
-          >
-            {{ busy ? 'Отправляем…' : 'Отправить заявку' }}
-          </button>
-        </template>
-      </div>
+        <button
+          class="mt-sm flex min-h-[44px] w-full items-center justify-center text-small font-semibold text-ink-soft transition-colors duration-fast hover:text-ink"
+          @click="back"
+        >
+          Изменить номер
+        </button>
+      </template>
     </div>
   </div>
 </template>
