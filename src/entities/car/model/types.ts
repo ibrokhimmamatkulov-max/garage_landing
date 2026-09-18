@@ -47,6 +47,56 @@ export interface CarTariff {
 
 export type CarListingType = 'taxi' | 'general';
 
+export type CarDriveType = 'fwd' | 'rwd' | 'awd';
+
+/** Как возвращается депозит */
+export type DepositReturnPolicy = 'on_return' | 'daily' | 'none';
+
+/** Кто платит за топливо */
+export type FuelPolicy = 'full_to_full' | 'tenant' | 'owner';
+
+/**
+ * Условия аренды — то, что владелец задаёт при подаче объявления.
+ * Платформа их только показывает: договор стороны заключают между собой.
+ */
+export interface CarTerms {
+  depositAmount: number;
+  depositReturnPolicy: DepositReturnPolicy;
+  depositDailyReturn: number | null;
+
+  mileageLimitPerDay: number | null;
+  overmileagePrice: number | null;
+
+  fuelPolicy: FuelPolicy | null;
+
+  minDriverAge: number | null;
+  minDriverExperience: number | null;
+  documentsPledge: string | null;
+  requireCleanRecord: boolean;
+
+  allowTaxi: boolean;
+  allowIntercity: boolean;
+  allowAbroad: boolean;
+  allowSmoking: boolean;
+  allowPets: boolean;
+
+  deliveryAvailable: boolean;
+  deliveryPrice: number | null;
+
+  additionalTerms: string | null;
+}
+
+/** Занятый интервал. Брони не создаёт — заявку на эти даты всё равно примут (ТЗ §2) */
+export interface CarUnavailablePeriod {
+  dateFrom: string;
+  dateTo: string;
+}
+
+export interface CarOwner {
+  displayName: string;
+  ownerType: string;
+}
+
 export interface Car {
   id: string;
   brand: string;
@@ -79,6 +129,23 @@ export interface Car {
   dopOptions?: CarDopOption[];
   tariffs?: CarTariff[];
   priceTiers?: CarPriceTier[];
+
+  /** Гараж 2.0 — то, что показывает карточка объявления */
+  description?: string;
+  maxRentDays?: number;
+  terms?: CarTerms;
+  unavailablePeriods?: CarUnavailablePeriod[];
+  owner?: CarOwner;
+
+  // Технические поля из формы подачи
+  customsCleared?: boolean | null;
+  engineVolume?: number | null;
+  mileage?: number | null;
+  driveType?: CarDriveType | null;
+  hasTaxiLicense?: boolean;
+  hasTurbo?: boolean;
+  /** Менеджер сверил VIN с техпаспортом. Сами документы не показываются */
+  vinVerified?: boolean;
 }
 
 export interface CarFilters {

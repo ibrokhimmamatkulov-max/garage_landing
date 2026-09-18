@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { useCarStore, type Car } from '@/entities/car';
+import { useCarStore } from '@/entities/car';
 import AppHeader from '@/widgets/AppHeader/index.vue';
 import CarDetails from '@/widgets/CarDetails/index.vue';
 import AppFooter from '@/widgets/AppFooter/index.vue';
@@ -20,15 +20,13 @@ const carStore = useCarStore();
 const isFilterOpen = ref(false);
 const isApplicationOpen = ref(false);
 const isSuccessOpen = ref(false);
-const selectedTariffId = ref<number | undefined>(undefined);
 
 onMounted(async () => {
   const id = route.params.id as string;
   await carStore.fetchCarById(id);
 });
 
-function handleApply(_car: Car, tariffId?: number) {
-  selectedTariffId.value = tariffId;
+function handleApply() {
   isApplicationOpen.value = true;
 }
 
@@ -43,21 +41,21 @@ function handleBack() {
 </script>
 
 <template>
-  <div class="flex flex-col min-h-screen bg-bg-section">
+  <div class="flex min-h-screen flex-col bg-surface-canvas">
     <AppHeader @open-filters="isFilterOpen = true" />
 
     <div
       v-if="carStore.isLoading"
-      class="flex-1 flex items-center justify-center text-text-secondary text-base py-3xl container"
+      class="container flex flex-1 items-center justify-center py-3xl text-body text-ink-muted"
     >
-      <p>Загрузка...</p>
+      <p>Загружаем объявление…</p>
     </div>
 
     <div
       v-else-if="!carStore.currentCar"
-      class="flex-1 flex items-center justify-center text-text-secondary text-base py-3xl container"
+      class="container flex flex-1 items-center justify-center py-3xl text-body text-ink-muted"
     >
-      <p>Автомобиль не найден.</p>
+      <p>Объявление не найдено или снято с публикации.</p>
     </div>
 
     <CarDetails v-else :car="carStore.currentCar" @apply="handleApply" @back="handleBack" />
@@ -70,7 +68,6 @@ function handleBack() {
     <ApplicationModal
       v-if="isApplicationOpen && carStore.currentCar"
       :car="carStore.currentCar"
-      :initial-tariff-id="selectedTariffId"
       @close="isApplicationOpen = false"
       @success="handleApplicationSuccess"
     />

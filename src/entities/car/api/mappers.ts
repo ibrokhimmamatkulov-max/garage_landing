@@ -1,4 +1,4 @@
-import type { Car } from '../model/types';
+import type { Car, CarDriveType, CarTerms, DepositReturnPolicy, FuelPolicy } from '../model/types';
 
 export interface ApiCarData {
   id: number;
@@ -55,6 +55,77 @@ export interface ApiCarData {
     deposit_per_day?: number;
   }>;
   performer_id?: number | null;
+
+  // Гараж 2.0 — детальная карточка
+  description?: string | null;
+  max_rent_days?: number | null;
+  customs_cleared?: boolean | null;
+  engine_volume?: number | null;
+  mileage?: number | null;
+  drive_type?: CarDriveType | null;
+  has_taxi_license?: boolean;
+  has_turbo?: boolean;
+  vin_verified?: boolean;
+  owner?: {
+    display_name?: string | null;
+    owner_type?: string | null;
+  } | null;
+  unavailable_periods?: Array<{
+    date_from: string | null;
+    date_to: string | null;
+  }>;
+  terms?: {
+    deposit_amount?: number;
+    deposit_return_policy?: DepositReturnPolicy;
+    deposit_daily_return?: number | null;
+    mileage_limit_per_day?: number | null;
+    overmileage_price?: number | null;
+    fuel_policy?: FuelPolicy | null;
+    min_driver_age?: number | null;
+    min_driver_experience?: number | null;
+    documents_pledge?: string | null;
+    require_clean_record?: boolean;
+    allow_taxi?: boolean;
+    allow_intercity?: boolean;
+    allow_abroad?: boolean;
+    allow_smoking?: boolean;
+    allow_pets?: boolean;
+    delivery_available?: boolean;
+    delivery_price?: number | null;
+    additional_terms?: string | null;
+  } | null;
+}
+
+function mapTerms(raw: NonNullable<ApiCarData['terms']>): CarTerms {
+  const num = (v: number | null | undefined) =>
+    v === null || v === undefined ? null : Number(v);
+
+  return {
+    depositAmount: Number(raw.deposit_amount) || 0,
+    depositReturnPolicy: raw.deposit_return_policy ?? 'none',
+    depositDailyReturn: num(raw.deposit_daily_return),
+
+    mileageLimitPerDay: num(raw.mileage_limit_per_day),
+    overmileagePrice: num(raw.overmileage_price),
+
+    fuelPolicy: raw.fuel_policy ?? null,
+
+    minDriverAge: num(raw.min_driver_age),
+    minDriverExperience: num(raw.min_driver_experience),
+    documentsPledge: raw.documents_pledge ?? null,
+    requireCleanRecord: Boolean(raw.require_clean_record),
+
+    allowTaxi: Boolean(raw.allow_taxi),
+    allowIntercity: Boolean(raw.allow_intercity),
+    allowAbroad: Boolean(raw.allow_abroad),
+    allowSmoking: Boolean(raw.allow_smoking),
+    allowPets: Boolean(raw.allow_pets),
+
+    deliveryAvailable: Boolean(raw.delivery_available),
+    deliveryPrice: num(raw.delivery_price),
+
+    additionalTerms: raw.additional_terms ?? null,
+  };
 }
 
 const PLACEHOLDER_IMAGE = 'https://placehold.co/800x600/f2f2ef/8c8c86?text=%20';
@@ -164,5 +235,36 @@ export function mapCar(apiData: ApiCarData): Car {
           ? Number(t.deposit_per_day)
           : undefined,
     })),
+
+    description: apiData.description || undefined,
+    maxRentDays:
+      apiData.max_rent_days !== null && apiData.max_rent_days !== undefined
+        ? Number(apiData.max_rent_days)
+        : undefined,
+    terms: apiData.terms ? mapTerms(apiData.terms) : undefined,
+
+    // Интервалы с пустыми границами отбрасываем: рисовать «занято с null» нечем
+    unavailablePeriods: apiData.unavailable_periods
+      ?.filter((p) => p.date_from && p.date_to)
+      .map((p) => ({ dateFrom: p.date_from as string, dateTo: p.date_to as string })),
+
+    owner: apiData.owner?.display_name
+      ? {
+          displayName: apiData.owner.display_name,
+          ownerType: apiData.owner.owner_type || 'individual',
+        }
+      : undefined,
+
+    customsCleared: apiData.customs_cleared ?? null,
+    engineVolume:
+      apiData.engine_volume !== null && apiData.engine_volume !== undefined
+        ? Number(apiData.engine_volume)
+        : null,
+    mileage:
+      apiData.mileage !== null && apiData.mileage !== undefined ? Number(apiData.mileage) : null,
+    driveType: apiData.drive_type ?? null,
+    hasTaxiLicense: Boolean(apiData.has_taxi_license),
+    hasTurbo: Boolean(apiData.has_turbo),
+    vinVerified: Boolean(apiData.vin_verified),
   };
 }

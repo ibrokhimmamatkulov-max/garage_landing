@@ -285,10 +285,7 @@ function serialize(o: Offer) {
     min_rent_days: o.minDays,
     max_rent_days: null,
     deposit: o.deposit,
-    price_tiers:
-      o.listing_type === 'general'
-        ? [{ id: o.id * 10, min_days: o.minDays, max_days: null, price_per_day: o.price }]
-        : [],
+    price_tiers: priceTiers(o),
     tariffs:
       o.listing_type === 'taxi'
         ? [{ id: 1, duration_days: 7, price: o.price, free_weekend_day: o.id % 2 === 0 ? 1 : 3 }]
@@ -296,6 +293,95 @@ function serialize(o: Offer) {
     // Два кадра на объявление: экстерьер и интерьер. Нужны разными, чтобы
     // переключение фото в карточке было видно глазом при проверке.
     photos: [photoExterior((o.id * 47) % 360), photoInterior((o.id * 47) % 360)],
+  };
+}
+
+/**
+ * Ступени цены: чем дольше срок, тем дешевле сутки.
+ * Нижняя граница первой ступени — минимальный срок объявления, иначе
+ * в таблице появилась бы цена за срок, на который машину не сдают.
+ */
+function priceTiers(o: Offer) {
+  if (o.listing_type !== 'general') return [];
+
+  const steps = [
+    { min: o.minDays, max: 7, k: 1 },
+    { min: 8, max: 20, k: 0.9 },
+    { min: 21, max: null as number | null, k: 0.82 },
+  ].filter((t) => t.max === null || t.max > t.min);
+
+  return steps.map((t, i) => ({
+    id: o.id * 10 + i,
+    min_days: t.min,
+    max_days: t.max,
+    price_per_day: Math.round((o.price * t.k) / 5) * 5,
+  }));
+}
+
+const DRIVE: Array<'fwd' | 'rwd' | 'awd'> = ['fwd', 'fwd', 'awd', 'rwd'];
+
+/**
+ * Детальная карточка: всё, что владелец заполнил при подаче.
+ * Значения выводятся из id, чтобы объявления отличались друг от друга,
+ * но оставались одинаковыми между перезагрузками.
+ */
+function serializeDetail(o: Offer) {
+  const isSuv = o.body === 'Кроссовер';
+
+  return {
+    ...serialize(o),
+    description:
+      `${o.brand} ${o.model} ${o.year} года. Машина в исходном состоянии, обслуживается у официального дилера. ` +
+      'Салон чистый, кондиционер заправлен. Перед выдачей моем и проверяем.',
+    address: 'Худжанд, ул. Ленина, 154',
+    color: COLORS[o.id % COLORS.length],
+    dop_options: [
+      { id: 1, name: 'Кондиционер' },
+      { id: 2, name: 'Камера заднего вида' },
+      ...(isSuv ? [{ id: 3, name: 'Люк' }] : []),
+      ...(o.id % 3 === 0 ? [{ id: 4, name: 'Детское кресло' }] : []),
+    ],
+
+    max_rent_days: o.listing_type === 'general' ? 30 : null,
+    customs_cleared: o.id % 4 !== 0,
+    engine_volume: isSuv ? 2.0 : 1.5,
+    mileage: 40_000 + o.id * 7_300,
+    drive_type: DRIVE[o.id % DRIVE.length],
+    has_taxi_license: o.listing_type === 'taxi',
+    has_turbo: isSuv && o.id % 2 === 0,
+    vin_verified: o.id % 5 !== 0,
+
+    owner: {
+      display_name: o.id % 3 === 0 ? 'Автопрокат «Сугд»' : 'Фаррух',
+      owner_type: o.id % 3 === 0 ? 'company' : 'individual',
+    },
+
+    unavailable_periods:
+      o.id % 2 === 0
+        ? [{ date_from: '2026-09-24', date_to: '2026-09-28' }]
+        : [],
+
+    terms: {
+      deposit_amount: o.deposit ?? 0,
+      deposit_return_policy: o.deposit ? 'on_return' : 'none',
+      deposit_daily_return: null,
+      mileage_limit_per_day: o.listing_type === 'taxi' ? null : 250,
+      overmileage_price: o.listing_type === 'taxi' ? null : 1.5,
+      fuel_policy: 'full_to_full',
+      min_driver_age: 23,
+      min_driver_experience: 3,
+      documents_pledge: 'Паспорт',
+      require_clean_record: true,
+      allow_taxi: o.listing_type === 'taxi',
+      allow_intercity: o.id % 3 !== 0,
+      allow_abroad: false,
+      allow_smoking: false,
+      allow_pets: o.id % 4 === 0,
+      delivery_available: o.id % 2 === 0,
+      delivery_price: o.id % 2 === 0 ? 50 : null,
+      additional_terms:
+        o.id % 3 === 0 ? 'При аренде от 14 суток последние сутки в подарок.' : null,
+    },
   };
 }
 
@@ -402,7 +488,7 @@ export function mockApi(): Plugin {
             res.statusCode = 404;
             return send({ success: false, code: 404, message: 'Объявление не найдено.' });
           }
-          return send(ok(serialize(offer)));
+          return send(ok(serializeDetail(offer)));
         }
 
         if (p === '/api/landing/apply/request-otp') {

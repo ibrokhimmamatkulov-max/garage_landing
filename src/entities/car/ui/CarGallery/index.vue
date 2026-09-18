@@ -70,7 +70,7 @@ function closeFullscreen() {
   <div class="block">
     <!-- Main carousel -->
     <div
-      class="group relative rounded-radius-lg overflow-hidden bg-bg-section aspect-[16/10] select-none cursor-grab active:cursor-grabbing"
+      class="group relative rounded-radius-lg overflow-hidden bg-surface-sunken aspect-[16/10] select-none cursor-grab active:cursor-grabbing"
       @touchstart.passive="onTouchStart"
       @touchmove.passive="onTouchMove"
       @touchend="onTouchEnd"
@@ -91,18 +91,22 @@ function closeFullscreen() {
       <!-- Navigation arrows -->
       <template v-if="hasMultipleImages">
         <button
-          class="absolute top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-white/95 rounded-full text-text-primary shadow-[0_2px_8px_rgba(0,0,0,0.12)] opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-fast z-[2] hover:bg-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.18)] hover:scale-105 active:scale-95 left-2 md:left-3 cursor-pointer"
+          class="absolute top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-fast z-[2] left-0.5 md:left-1.5 cursor-pointer group/arrow"
           aria-label="Предыдущее фото"
           @click.stop="prev"
         >
-          <AppIcon name="chevron-left" :size="20" />
+          <span class="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-white/95 text-ink shadow-[0_2px_8px_rgba(0,0,0,0.12)] transition-all duration-fast group-hover/arrow:bg-white group-hover/arrow:shadow-[0_4px_16px_rgba(0,0,0,0.18)] group-hover/arrow:scale-105 group-active/arrow:scale-95">
+            <AppIcon name="chevron-left" :size="20" />
+          </span>
         </button>
         <button
-          class="absolute top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-white/95 rounded-full text-text-primary shadow-[0_2px_8px_rgba(0,0,0,0.12)] opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-fast z-[2] hover:bg-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.18)] hover:scale-105 active:scale-95 right-2 md:right-3 cursor-pointer"
+          class="absolute top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-fast z-[2] right-0.5 md:right-1.5 cursor-pointer group/arrow"
           aria-label="Следующее фото"
           @click.stop="next"
         >
-          <AppIcon name="chevron-right" :size="20" />
+          <span class="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-full bg-white/95 text-ink shadow-[0_2px_8px_rgba(0,0,0,0.12)] transition-all duration-fast group-hover/arrow:bg-white group-hover/arrow:shadow-[0_4px_16px_rgba(0,0,0,0.18)] group-hover/arrow:scale-105 group-active/arrow:scale-95">
+            <AppIcon name="chevron-right" :size="20" />
+          </span>
         </button>
       </template>
 
@@ -116,30 +120,41 @@ function closeFullscreen() {
 
       <!-- Expand button -->
       <button
-        class="absolute top-2 right-2 md:top-3 md:right-3 w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-black/50 rounded-radius-sm text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-fast z-[2] backdrop-blur-[4px] hover:bg-black/70 hover:scale-105 active:scale-95 cursor-pointer"
+        class="absolute top-0.5 right-0.5 md:top-1.5 md:right-1.5 flex h-11 w-11 items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-fast z-[2] cursor-pointer group/expand"
         aria-label="Открыть на весь экран"
         @click.stop="openFullscreen"
       >
-        <AppIcon name="maximize" :size="18" />
+        <span class="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-radius-sm bg-black/50 text-white backdrop-blur-[4px] transition-all duration-fast group-hover/expand:bg-black/70 group-hover/expand:scale-105 group-active/expand:scale-95">
+          <AppIcon name="maximize" :size="18" />
+        </span>
       </button>
 
       <!-- Dot indicators -->
       <div
         v-if="hasMultipleImages && totalImages <= 8"
-        class="absolute bottom-2 md:bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-[2]"
+        class="absolute bottom-0 md:bottom-1 left-1/2 -translate-x-1/2 flex z-[2]"
       >
+        <!--
+          Точка остаётся мелкой, а нажимается квадрат 24px — минимум WCAG 2.5.8.
+          Растить саму точку до этого размера нельзя: индикатор превратился бы
+          в ряд крупных кружков поверх фотографии.
+        -->
         <button
           v-for="(_, index) in car.images"
           :key="index"
-          class="w-2 h-2 rounded-full transition-all duration-fast cursor-pointer"
-          :class="[
-            index === currentIndex
-              ? 'bg-white !w-5 rounded-[4px]'
-              : 'bg-white/50 hover:bg-white/80 hover:scale-110',
-          ]"
+          class="group/dot flex h-6 w-6 items-center justify-center cursor-pointer"
           :aria-label="`Фото ${index + 1}`"
           @click.stop="selectImage(index)"
-        />
+        >
+          <span
+            class="h-2 rounded-full transition-all duration-fast"
+            :class="
+              index === currentIndex
+                ? 'w-5 bg-white rounded-[4px]'
+                : 'w-2 bg-white/50 group-hover/dot:bg-white/80 group-hover/dot:scale-110'
+            "
+          />
+        </button>
       </div>
     </div>
 
