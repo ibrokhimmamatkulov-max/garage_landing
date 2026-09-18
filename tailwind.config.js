@@ -14,7 +14,11 @@ export default {
          * Конкретные значения и их контрасты живут в global.css.
          */
         brand: {
+          /** Заливка. Текст поверх — только brand.on, белый на ней не читается */
           DEFAULT: 'rgb(var(--brand-rgb) / <alpha-value>)',
+          on: 'rgb(var(--brand-on-rgb) / <alpha-value>)',
+          press: 'rgb(var(--brand-press-rgb) / <alpha-value>)',
+          /** Акцентный текст и ссылки на светлом — заливкой быть не должен */
           ink: 'rgb(var(--brand-ink-rgb) / <alpha-value>)',
           deep: 'rgb(var(--brand-deep-rgb) / <alpha-value>)',
           tint: 'rgb(var(--brand-tint-rgb) / <alpha-value>)',

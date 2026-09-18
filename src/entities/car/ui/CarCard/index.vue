@@ -127,7 +127,7 @@ function handleTouchEnd(event: TouchEvent) {
 
         <div class="mt-md flex gap-sm">
           <button
-            class="flex-1 rounded-radius-md bg-brand-ink px-3 py-2.5 text-small font-semibold text-white transition-colors duration-fast hover:bg-brand-deep"
+            class="flex-1 rounded-radius-md bg-brand px-3 py-2.5 text-small font-semibold text-brand-on transition-colors duration-fast hover:bg-brand-press"
             @click="$emit('apply', car)"
           >
             Оставить заявку

@@ -59,7 +59,7 @@ async function submit() {
         <button
           type="submit"
           :disabled="!login || !password || store.busy"
-          class="mt-lg w-full rounded-radius-md bg-brand-ink py-3 text-body font-semibold text-white transition-colors duration-fast hover:bg-brand-deep disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
+          class="mt-lg w-full rounded-radius-md bg-brand py-3 text-body font-semibold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
         >
           {{ store.busy ? 'Проверяем…' : 'Войти' }}
         </button>

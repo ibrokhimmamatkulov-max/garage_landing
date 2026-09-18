@@ -439,7 +439,7 @@ async function onAuthSuccess() {
         <button
           type="button"
           :disabled="!canSubmit || submitting"
-          class="shrink-0 rounded-radius-md bg-brand-ink px-6 py-3 text-body font-semibold text-white transition-colors duration-fast hover:bg-brand-deep disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
+          class="shrink-0 rounded-radius-md bg-brand px-6 py-3 text-body font-semibold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
           @click="submit"
         >
           Опубликовать

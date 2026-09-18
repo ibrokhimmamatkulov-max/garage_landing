@@ -75,7 +75,7 @@ function makeMain(index: number) {
 
         <span
           v-if="i === 0"
-          class="absolute left-1.5 top-1.5 rounded-full bg-brand-ink px-2 py-0.5 text-caption font-bold text-white"
+          class="absolute left-1.5 top-1.5 rounded-full bg-brand px-2 py-0.5 text-caption font-bold text-brand-on"
         >
           Главная
         </span>

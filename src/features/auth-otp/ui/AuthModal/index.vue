@@ -142,7 +142,7 @@ function onCredentialsDone() {
 
           <button
             :disabled="!auth.isPhoneValid.value || auth.busy.value"
-            class="mt-lg w-full rounded-radius-md bg-brand-ink py-3 text-body font-semibold text-white transition-colors duration-fast hover:bg-brand-deep disabled:bg-surface-sunken disabled:text-ink-soft"
+            class="mt-lg w-full rounded-radius-md bg-brand py-3 text-body font-semibold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:bg-surface-sunken disabled:text-ink-soft"
             @click="onRequest"
           >
             {{ auth.busy.value ? 'Отправляем…' : 'Получить код' }}
@@ -163,7 +163,7 @@ function onCredentialsDone() {
 
           <button
             :disabled="!auth.login.value || !auth.password.value || auth.busy.value"
-            class="mt-lg w-full rounded-radius-md bg-brand-ink py-3 text-body font-semibold text-white transition-colors duration-fast hover:bg-brand-deep disabled:bg-surface-sunken disabled:text-ink-soft"
+            class="mt-lg w-full rounded-radius-md bg-brand py-3 text-body font-semibold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:bg-surface-sunken disabled:text-ink-soft"
             @click="onPassword"
           >
             {{ props.confirmLabel }}
@@ -207,7 +207,7 @@ function onCredentialsDone() {
 
         <button
           :disabled="!auth.isCodeValid.value || auth.busy.value"
-          class="mt-lg w-full rounded-radius-md bg-brand-ink py-3 text-body font-semibold text-white transition-colors duration-fast hover:bg-brand-deep disabled:bg-surface-sunken disabled:text-ink-soft"
+          class="mt-lg w-full rounded-radius-md bg-brand py-3 text-body font-semibold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:bg-surface-sunken disabled:text-ink-soft"
           @click="onVerify"
         >
           {{ auth.busy.value ? 'Проверяем…' : props.confirmLabel }}
@@ -253,7 +253,7 @@ function onCredentialsDone() {
 
         <button
           :disabled="!savedAcknowledged"
-          class="mt-lg w-full rounded-radius-md bg-brand-ink py-3 text-body font-semibold text-white transition-colors duration-fast hover:bg-brand-deep disabled:bg-surface-sunken disabled:text-ink-soft"
+          class="mt-lg w-full rounded-radius-md bg-brand py-3 text-body font-semibold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:bg-surface-sunken disabled:text-ink-soft"
           @click="onCredentialsDone"
         >
           {{ props.confirmLabel }}

@@ -181,7 +181,7 @@ function resetFilters() {
         {{ s.name }}
         <span
           class="tnum rounded-full px-1.5 py-0.5 text-caption font-bold"
-          :class="s.code === 'new' && s.count ? 'bg-brand-ink text-white' : 'bg-surface-sunken text-ink-muted'"
+          :class="s.code === 'new' && s.count ? 'bg-brand text-brand-on' : 'bg-surface-sunken text-ink-muted'"
         >
           {{ s.count ?? 0 }}
         </span>
@@ -341,7 +341,7 @@ function resetFilters() {
           <div class="flex flex-col gap-lg px-lg py-lg">
             <a
               :href="`tel:+${selected.phone}`"
-              class="tnum block rounded-radius-md bg-brand-ink px-base py-3.5 text-center text-title-sm font-bold text-white no-underline transition-colors duration-fast hover:bg-brand-deep"
+              class="tnum block rounded-radius-md bg-brand px-base py-3.5 text-center text-title-sm font-bold text-brand-on no-underline transition-colors duration-fast hover:bg-brand-press"
             >
               {{ fmtPhone(selected.phone) }}
             </a>

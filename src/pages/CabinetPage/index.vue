@@ -73,7 +73,7 @@ async function signOut() {
         </div>
         <router-link
           to="/listings/new"
-          class="rounded-radius-md bg-brand-ink px-5 py-3 text-small font-semibold text-white no-underline transition-colors duration-fast hover:bg-brand-deep"
+          class="rounded-radius-md bg-brand px-5 py-3 text-small font-semibold text-brand-on no-underline transition-colors duration-fast hover:bg-brand-press"
         >
           + Разместить авто
         </router-link>
@@ -118,7 +118,7 @@ async function signOut() {
           <span
             v-if="t.count"
             class="tnum rounded-full px-1.5 py-0.5 text-caption font-bold"
-            :class="t.id === 'applications' ? 'bg-brand-ink text-white' : 'bg-surface-sunken text-ink-muted'"
+            :class="t.id === 'applications' ? 'bg-brand text-brand-on' : 'bg-surface-sunken text-ink-muted'"
           >
             {{ t.count }}
           </span>
@@ -252,7 +252,7 @@ async function signOut() {
                   <h3 class="text-title-sm font-bold text-ink">{{ a.name }}</h3>
                   <span
                     v-if="a.status?.code === 'new'"
-                    class="rounded-full bg-brand-ink px-2 py-0.5 text-caption font-bold text-white"
+                    class="rounded-full bg-brand px-2 py-0.5 text-caption font-bold text-brand-on"
                   >
                     Новая
                   </span>
