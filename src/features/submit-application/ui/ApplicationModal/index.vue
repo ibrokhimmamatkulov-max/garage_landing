@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import type { Car } from '@/entities/car';
 import { useLocationStore } from '@/entities/location';
 import { requestApplyOtp, submitApplication } from '../../api';
@@ -29,6 +29,7 @@ const locationStore = useLocationStore();
 type Step = 'phone' | 'code';
 const step = ref<Step>('phone');
 
+/** Только девять местных цифр: код страны в поле не попадает. */
 const phone = ref('');
 const code = ref('');
 const busy = ref(false);
@@ -36,8 +37,35 @@ const error = ref<string | null>(null);
 const isStub = ref(false);
 const dialog = ref<HTMLElement | null>(null);
 
-const isPhoneValid = computed(() => phone.value.replace(/\D/g, '').length >= 9);
+const digits = computed(() => phone.value.replace(/\D/g, ''));
+const isPhoneValid = computed(() => digits.value.length === 9);
 const isCodeValid = computed(() => code.value.replace(/\D/g, '').length >= 4);
+
+/** 173002288 → «17 300 22 88» */
+function groupLocal(raw: string): string {
+  const d = raw.replace(/\D/g, '').slice(0, 9);
+  return [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean).join(' ');
+}
+
+/**
+ * Префикс +992 вынесен из поля и не редактируется.
+ *
+ * Пока он был частью значения, форматирование ломалось на стирании:
+ * из «+99» не понять, остаток это кода страны или начало номера,
+ * и поле дописывало себе цифры само.
+ */
+function onPhoneInput(e: Event) {
+  const el = e.target as HTMLInputElement;
+  phone.value = groupLocal(el.value);
+  // Значение перерисовано целиком, поэтому каретку возвращаем в конец:
+  // номер короткий, его правят с хвоста.
+  nextTick(() => {
+    el.value = phone.value;
+    el.setSelectionRange(phone.value.length, phone.value.length);
+  });
+}
+
+const fullPhone = computed(() => `+992 ${phone.value}`);
 
 /**
  * Тариф показываем, а не предлагаем выбрать.
@@ -67,10 +95,11 @@ async function sendCode() {
   busy.value = true;
   error.value = null;
   try {
-    const res = await requestApplyOtp(phone.value);
+    const res = await requestApplyOtp(`992${digits.value}`);
     isStub.value = res.delivery === 'stub';
     if (res.stubCode) code.value = res.stubCode;
     step.value = 'code';
+    nextTick(() => dialog.value?.querySelector<HTMLInputElement>('#ap-code')?.focus());
   } catch (e: any) {
     error.value = e?.response?.data?.message ?? 'Не удалось отправить код.';
   } finally {
@@ -84,7 +113,7 @@ async function submit() {
   error.value = null;
   try {
     const result = await submitApplication({
-      phone: phone.value.replace(/\D/g, ''),
+      phone: `992${digits.value}`,
       code: code.value.replace(/\D/g, ''),
       cityId: locationStore.currentCity?.id ?? Number(props.car.city?.id),
       offerId: Number(props.car.id),
@@ -107,6 +136,7 @@ function back() {
   step.value = 'phone';
   code.value = '';
   error.value = null;
+  nextTick(() => dialog.value?.querySelector<HTMLInputElement>('#ap-phone')?.focus());
 }
 
 function onKey(e: KeyboardEvent) {
@@ -142,7 +172,7 @@ onUnmounted(() => {
         не мог быть по центру — кнопка съедала правую часть строки.
       -->
       <button
-        class="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full text-ink-soft transition-colors duration-fast hover:text-ink"
+        class="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full text-ink-soft transition-colors duration-fast hover:text-ink sm:right-3 sm:top-3"
         aria-label="Закрыть"
         @click="emit('close')"
       >
@@ -155,12 +185,18 @@ onUnmounted(() => {
 
       <h2
         id="apply-title"
-        class="mx-auto max-w-[15rem] text-center text-display-sm font-extrabold leading-tight text-ink"
+        class="text-balance text-center text-display-sm font-extrabold leading-tight text-ink"
       >
         {{ step === 'phone' ? 'Оставьте номер' : 'Подтвердите номер' }}
       </h2>
-      <p v-if="step === 'phone'" class="mt-1.5 text-center text-small text-ink-muted">
-        Владелец перезвонит и договорится об осмотре
+
+      <!-- Подзаголовок есть на обоих шагах: без него второй экран выглядел голым -->
+      <p class="mt-1.5 text-balance text-center text-small text-ink-muted">
+        <template v-if="step === 'phone'">Владелец перезвонит и договорится об осмотре</template>
+        <template v-else>
+          Отправили код на
+          <span class="tnum whitespace-nowrap font-semibold text-ink">{{ fullPhone }}</span>
+        </template>
       </p>
 
       <!-- ---------- Шаг 1: номер ---------- -->
@@ -177,44 +213,50 @@ onUnmounted(() => {
         </div>
 
         <!--
-          Поле скруглено полностью и текст по центру: прямоугольник с левым
-          выравниванием выбивался из центрированной композиции окна.
-          Фокус — тёмная рамка и мягкое жёлтое свечение: акцентный янтарный
-          на светлой заливке уходил в болотный.
+          Поле-пилюля: прямоугольник с левым выравниванием выбивался из
+          центрированной композиции. Код страны — статичная приставка слева,
+          редактируются только девять местных цифр.
         -->
-        <input
-          id="ap-phone"
-          v-model="phone"
-          inputmode="tel"
-          placeholder="+992 00 000 00 00"
-          aria-label="Номер телефона"
-          class="tnum mt-md w-full rounded-full border-2 bg-surface-sunken px-base py-3.5 text-center text-body-lg font-semibold text-ink transition-all duration-fast placeholder:font-normal placeholder:tracking-normal placeholder:text-ink-soft focus:bg-surface-paper focus:outline-none"
+        <label
+          class="mt-md flex h-14 w-full cursor-text items-center justify-center gap-2 rounded-full border-2 bg-surface-sunken transition-all duration-fast focus-within:bg-surface-paper"
           :class="
             error
               ? 'border-state-error'
-              : 'border-transparent focus:border-ink focus:shadow-focus-brand'
+              : 'border-transparent focus-within:border-ink focus-within:shadow-focus-brand'
           "
-          @keyup.enter="sendCode"
-        />
+        >
+          <span class="tnum select-none text-body-lg font-semibold text-ink-soft">+992</span>
+          <input
+            id="ap-phone"
+            :value="phone"
+            inputmode="tel"
+            placeholder="00 000 00 00"
+            aria-label="Номер телефона"
+            class="tnum w-[7.25rem] bg-transparent text-body-lg font-semibold text-ink outline-none placeholder:font-normal placeholder:text-ink-soft"
+            @input="onPhoneInput"
+            @keyup.enter="sendCode"
+          />
+        </label>
 
-        <p v-if="error" class="mt-sm text-caption text-state-error">{{ error }}</p>
+        <p v-if="error" class="mt-sm text-center text-caption text-state-error">{{ error }}</p>
 
-        <p class="mt-lg text-center text-small font-semibold text-ink-muted">Это бесплатно</p>
+        <!-- Прижато к кнопке: с равными отступами строка висела сама по себе -->
+        <p class="mb-sm mt-lg text-center text-small font-semibold text-ink-muted">Это бесплатно</p>
 
         <button
           :disabled="!isPhoneValid || busy"
-          class="mt-md w-full rounded-full bg-brand py-4 text-body-lg font-bold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
+          class="h-14 w-full rounded-full bg-brand text-body-lg font-bold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
           @click="sendCode"
         >
           {{ busy ? 'Отправляем…' : 'Оставить заявку' }}
         </button>
 
         <!--
-          Согласие оставлено одной строкой вместо абзаца: сам текст убрать
+          Согласие оставлено одной фразой вместо абзаца: сам текст убрать
           нельзя — это обработка персональных данных, но занимать им треть
           окна незачем.
         -->
-        <p class="mt-md text-center text-caption leading-relaxed text-ink-soft">
+        <p class="mt-md text-balance text-center text-caption leading-relaxed text-ink-soft">
           Нажимая кнопку, вы соглашаетесь с
           <a href="#" class="text-ink-muted underline">обработкой персональных данных</a>
         </p>
@@ -222,29 +264,38 @@ onUnmounted(() => {
 
       <!-- ---------- Шаг 2: код ---------- -->
       <template v-else>
-        <p class="tnum mt-2 text-small text-ink-muted">
-          Отправили на <span class="font-semibold text-ink">{{ phone }}</span>
-        </p>
-
+        <!--
+          Трекинг добавляет пробел и после последней цифры, из-за чего
+          центрированный текст уезжает влево — компенсируем отступом слева.
+        -->
         <input
           id="ap-code"
           v-model="code"
           inputmode="numeric"
           maxlength="4"
           aria-label="Код из SMS"
-          class="tnum mt-lg w-full rounded-full border-2 bg-surface-sunken py-4 pl-[0.5em] text-center text-display-sm font-extrabold tracking-[0.5em] text-ink transition-all duration-fast focus:bg-surface-paper focus:outline-none"
-          :class="error ? 'border-state-error' : 'border-transparent focus:border-ink focus:shadow-focus-brand'"
+          class="tnum mt-lg h-14 w-full rounded-full border-2 bg-surface-sunken pl-[0.45em] text-center text-price font-extrabold tracking-[0.45em] text-ink transition-all duration-fast focus:bg-surface-paper focus:outline-none"
+          :class="
+            error
+              ? 'border-state-error'
+              : 'border-transparent focus:border-ink focus:shadow-focus-brand'
+          "
           @keyup.enter="submit"
         />
 
-        <p v-if="isStub" class="mt-sm text-center text-caption font-semibold text-state-warning">
-          Демо-режим: SMS не отправляется, код подставлен
+        <!-- Предупреждение о демо-режиме — плашкой, а не россыпью жёлтого текста -->
+        <p v-if="isStub" class="mt-sm text-center">
+          <span
+            class="inline-block rounded-full bg-brand-tint px-3 py-1.5 text-caption font-semibold text-brand-deep"
+          >
+            Демо-режим: код подставлен
+          </span>
         </p>
         <p v-if="error" class="mt-sm text-center text-caption text-state-error">{{ error }}</p>
 
         <button
           :disabled="!isCodeValid || busy"
-          class="mt-lg w-full rounded-full bg-brand py-4 text-body-lg font-bold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
+          class="mt-lg h-14 w-full rounded-full bg-brand text-body-lg font-bold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
           @click="submit"
         >
           {{ busy ? 'Отправляем…' : 'Подтвердить' }}
