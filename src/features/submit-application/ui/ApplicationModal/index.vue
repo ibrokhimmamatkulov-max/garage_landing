@@ -3,7 +3,6 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import type { Car } from '@/entities/car';
 import { useLocationStore } from '@/entities/location';
 import { requestApplyOtp, submitApplication } from '../../api';
-import TextField from '@/shared/ui/TextField/index.vue';
 
 defineOptions({
   name: 'ApplicationModal',
@@ -15,9 +14,6 @@ defineOptions({
  * Код из SMS нужен не ради регистрации (арендатор остаётся анонимным),
  * а чтобы отсечь выдуманные номера: владелец должен получать лиды,
  * по которым можно дозвониться.
- *
- * Условия показаны текстом — человек должен понимать, на что подаёт заявку,
- * но выбирать ему здесь нечего: всё согласуется голосом.
  */
 const props = defineProps<{
   car: Car;
@@ -43,23 +39,36 @@ const dialog = ref<HTMLElement | null>(null);
 const isPhoneValid = computed(() => phone.value.replace(/\D/g, '').length >= 9);
 const isCodeValid = computed(() => code.value.replace(/\D/g, '').length >= 4);
 
-/** Условия одной строкой каждое — чтобы читалось взглядом, а не вчитывалось */
-const terms = computed<string[]>(() => {
-  const out: string[] = [];
+/**
+ * Характеристики отдельными тегами, а не строкой через точки:
+ * склеенные в предложение, они читаются как мелкий шрифт договора
+ * и глаз по ним просто скользит.
+ */
+const specs = computed(() =>
+  [props.car.transmission, props.car.fuelType, props.car.bodyType?.name ?? props.car.carClass]
+    .filter(Boolean)
+    .slice(0, 3),
+);
+
+/** Условия сделки — то, что человеку важно знать до звонка */
+const conditions = computed<Array<{ label: string; value: string }>>(() => {
   const car = props.car;
+  const out: Array<{ label: string; value: string }> = [];
 
   if (car.listingType === 'taxi') {
-    out.push(`Схема ${car.workDays} рабочих / ${car.weekendDays} выходных`);
-  } else if (car.minRentDays > 1) {
-    out.push(`Минимальный срок — ${car.minRentDays} суток`);
+    out.push({ label: 'Схема', value: `${car.workDays} / ${car.weekendDays}` });
+  } else {
+    out.push({ label: 'Минимальный срок', value: `${car.minRentDays} сут.` });
   }
 
   if (car.deposit !== undefined && car.deposit !== null) {
-    out.push(car.deposit > 0 ? `Депозит ${car.deposit} сомони` : 'Без депозита');
+    out.push({
+      label: 'Депозит',
+      value: car.deposit > 0 ? `${car.deposit} сомони` : 'нет',
+    });
   }
 
-  if (car.transmission) out.push(car.transmission);
-  if (car.fuelType) out.push(car.fuelType);
+  if (car.city?.name) out.push({ label: 'Город', value: car.city.name });
 
   return out;
 });
@@ -105,6 +114,12 @@ async function submit() {
   }
 }
 
+function back() {
+  step.value = 'phone';
+  code.value = '';
+  error.value = null;
+}
+
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape') emit('close');
 }
@@ -123,7 +138,7 @@ onUnmounted(() => {
 
 <template>
   <div
-    class="fixed inset-0 z-[200] flex items-end justify-center bg-ink/55 backdrop-blur-sm sm:items-center sm:p-lg"
+    class="fixed inset-0 z-[200] flex items-end justify-center bg-ink/60 backdrop-blur-sm sm:items-center sm:p-lg"
     @click.self="emit('close')"
   >
     <div
@@ -131,111 +146,145 @@ onUnmounted(() => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="apply-title"
-      class="w-full max-w-[24rem] rounded-t-radius-xl bg-surface-paper p-lg shadow-modal sm:rounded-radius-xl"
+      class="w-full max-w-[25rem] overflow-hidden rounded-t-radius-2xl bg-surface-paper shadow-modal sm:rounded-radius-2xl"
     >
-      <div class="flex items-start justify-between gap-md">
-        <h2 id="apply-title" class="text-title font-bold text-ink">
-          {{ step === 'phone' ? 'Оставьте номер' : 'Введите код' }}
-        </h2>
+      <!--
+        Шапка на бренде: даёт окну визуальный якорь и сразу отвечает на
+        вопрос «за что я плачу». Цена — самый крупный элемент, потому что
+        это единственное число, ради которого человек сюда нажал.
+      -->
+      <header class="relative bg-brand px-lg pb-lg pt-base">
         <button
-          class="-mr-3 -mt-3 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors duration-fast hover:bg-surface-sunken hover:text-ink"
+          class="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full text-brand-on/60 transition-colors duration-fast hover:bg-brand-on/10 hover:text-brand-on"
           aria-label="Закрыть"
           @click="emit('close')"
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <svg width="15" height="15" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
         </button>
-      </div>
 
-      <!-- ---------- Шаг 1: номер ---------- -->
-      <template v-if="step === 'phone'">
-        <p class="mt-1 text-small text-ink-muted">Владелец перезвонит и договорится об осмотре.</p>
+        <p class="text-caption font-bold uppercase tracking-[0.1em] text-brand-on/65">
+          Заявка на аренду
+        </p>
 
-        <!-- На что подаём заявку -->
-        <div class="mt-lg rounded-radius-md bg-surface-sunken px-base py-3">
-          <p class="text-title-sm font-bold text-ink">
-            {{ car.brand }} {{ car.model }}
-            <span class="tnum font-semibold text-ink-soft">· {{ car.year }}</span>
-          </p>
-          <p class="tnum mt-1 text-price font-extrabold text-ink">
-            {{ car.pricePerDay }}
-            <span class="text-body font-semibold text-ink-muted">{{ car.currency }} / сутки</span>
-          </p>
-          <p v-if="terms.length" class="mt-1.5 text-caption leading-relaxed text-ink-muted">
-            {{ terms.join(' · ') }}
-          </p>
+        <p class="mt-2 pr-10 text-title-sm font-bold text-brand-on">
+          {{ car.brand }} {{ car.model }}
+          <span class="tnum font-semibold text-brand-on/60">· {{ car.year }}</span>
+        </p>
+
+        <p class="tnum mt-1 flex items-baseline gap-1.5 text-brand-on">
+          <span class="text-display-sm font-extrabold leading-none">{{ car.pricePerDay }}</span>
+          <span class="text-small font-bold">{{ car.currency }} / сутки</span>
+        </p>
+
+        <ul v-if="specs.length" class="mt-md flex flex-wrap gap-1.5">
+          <li
+            v-for="s in specs"
+            :key="s"
+            class="rounded-full bg-brand-on/10 px-2.5 py-1 text-caption font-semibold text-brand-on"
+          >
+            {{ s }}
+          </li>
+        </ul>
+      </header>
+
+      <!-- Условия: пары «что — сколько», а не строка через точки -->
+      <dl v-if="conditions.length" class="flex flex-col divide-y divide-hairline-soft px-lg">
+        <div
+          v-for="c in conditions"
+          :key="c.label"
+          class="flex items-center justify-between gap-md py-2.5"
+        >
+          <dt class="text-small text-ink-muted">{{ c.label }}</dt>
+          <dd class="tnum text-small font-bold text-ink">{{ c.value }}</dd>
         </div>
+      </dl>
 
-        <div class="mt-lg">
-          <label for="ap-phone" class="mb-1.5 block text-small font-semibold text-ink">
-            Номер телефона
-          </label>
-          <TextField
+      <div class="border-t border-hairline px-lg py-lg">
+        <!-- ---------- Шаг 1: номер ---------- -->
+        <template v-if="step === 'phone'">
+          <h2 id="apply-title" class="text-title font-bold text-ink">Оставьте номер</h2>
+          <p class="mt-1 text-small text-ink-muted">
+            Владелец перезвонит и договорится об осмотре.
+          </p>
+
+          <input
             id="ap-phone"
             v-model="phone"
             inputmode="tel"
             placeholder="+992 __ ___ __ __"
-            :invalid="Boolean(error)"
+            aria-label="Номер телефона"
+            class="tnum mt-base w-full rounded-radius-md border bg-surface-paper px-base py-3.5 text-title-sm font-semibold text-ink transition-colors duration-fast placeholder:font-normal placeholder:text-ink-ghost focus:outline-none"
+            :class="
+              error
+                ? 'border-state-error'
+                : 'border-hairline focus:border-brand-ink focus:shadow-focus-brand'
+            "
             @keyup.enter="sendCode"
           />
-        </div>
 
-        <p v-if="error" class="mt-sm text-caption text-state-error">{{ error }}</p>
+          <p v-if="error" class="mt-sm text-caption text-state-error">{{ error }}</p>
 
-        <button
-          :disabled="!isPhoneValid || busy"
-          class="mt-lg w-full rounded-radius-md bg-brand py-3.5 text-body font-bold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
-          @click="sendCode"
-        >
-          {{ busy ? 'Отправляем…' : 'Получить код' }}
-        </button>
-      </template>
+          <button
+            :disabled="!isPhoneValid || busy"
+            class="mt-base w-full rounded-radius-md bg-ink py-3.5 text-body font-bold text-white transition-colors duration-fast hover:bg-ink-muted disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
+            @click="sendCode"
+          >
+            {{ busy ? 'Отправляем…' : 'Получить код' }}
+          </button>
+        </template>
 
-      <!-- ---------- Шаг 2: код ---------- -->
-      <template v-else>
-        <p class="mt-1 text-small text-ink-muted">
-          Отправили на <span class="tnum font-semibold text-ink">{{ phone }}</span>
-        </p>
+        <!-- ---------- Шаг 2: код ---------- -->
+        <template v-else>
+          <button
+            class="-ml-2 mb-2 inline-flex min-h-[44px] items-center gap-1.5 pl-2 pr-3 text-small font-semibold text-ink-soft transition-colors duration-fast hover:text-ink"
+            @click="back"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M8.5 3L4.5 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Изменить номер
+          </button>
 
-        <p
-          v-if="isStub"
-          class="mt-md rounded-radius-md border border-state-warning bg-state-warning-tint px-3.5 py-2.5 text-caption font-semibold text-state-warning"
-        >
-          Демо-режим: SMS не отправляется, код подставлен автоматически.
-        </p>
+          <h2 id="apply-title" class="text-title font-bold text-ink">Введите код</h2>
+          <p class="tnum mt-1 text-small text-ink-muted">
+            Отправили на <span class="font-semibold text-ink">{{ phone }}</span>
+          </p>
 
-        <div class="mt-lg">
-          <label for="ap-code" class="mb-1.5 block text-small font-semibold text-ink">
-            Код из SMS
-          </label>
-          <TextField
+          <!-- Поле кода: крупное, по центру, с разрядкой — как в SMS-подтверждениях -->
+          <input
             id="ap-code"
             v-model="code"
             inputmode="numeric"
-            :maxlength="4"
-            :invalid="Boolean(error)"
+            maxlength="4"
+            aria-label="Код из SMS"
+            class="tnum mt-base w-full rounded-radius-md border bg-surface-paper py-3.5 text-center text-display-sm font-extrabold tracking-[0.5em] text-ink transition-colors duration-fast focus:outline-none"
+            :class="
+              error
+                ? 'border-state-error'
+                : 'border-hairline focus:border-brand-ink focus:shadow-focus-brand'
+            "
             @keyup.enter="submit"
           />
-        </div>
 
-        <p v-if="error" class="mt-sm text-caption text-state-error">{{ error }}</p>
+          <p
+            v-if="isStub"
+            class="mt-sm text-center text-caption font-semibold text-state-warning"
+          >
+            Демо-режим: SMS не отправляется, код подставлен
+          </p>
+          <p v-if="error" class="mt-sm text-caption text-state-error">{{ error }}</p>
 
-        <button
-          :disabled="!isCodeValid || busy"
-          class="mt-lg w-full rounded-radius-md bg-brand py-3.5 text-body font-bold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
-          @click="submit"
-        >
-          {{ busy ? 'Отправляем…' : 'Отправить заявку' }}
-        </button>
-
-        <button
-          class="-mb-2 mt-1 w-full py-2 text-small font-semibold text-ink-soft transition-colors duration-fast hover:text-ink"
-          @click="step = 'phone'; code = ''; error = null"
-        >
-          Изменить номер
-        </button>
-      </template>
+          <button
+            :disabled="!isCodeValid || busy"
+            class="mt-base w-full rounded-radius-md bg-ink py-3.5 text-body font-bold text-white transition-colors duration-fast hover:bg-ink-muted disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
+            @click="submit"
+          >
+            {{ busy ? 'Отправляем…' : 'Отправить заявку' }}
+          </button>
+        </template>
+      </div>
     </div>
   </div>
 </template>
