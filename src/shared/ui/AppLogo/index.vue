@@ -38,7 +38,7 @@ withDefaults(
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label="Gram Garage"
+      aria-label="0110 Garage"
       class="shrink-0 text-brand"
       :class="[
         size === 'sm' && 'h-6 w-6',
@@ -67,7 +67,7 @@ withDefaults(
         size === 'xl' && 'text-display-sm md:text-display',
       ]"
     >
-      Gram Garage
+      0110 Garage
     </span>
   </div>
 </template>

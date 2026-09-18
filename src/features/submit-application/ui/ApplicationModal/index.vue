@@ -123,7 +123,7 @@ async function handleSubmit() {
       <p class="text-sm text-text-secondary text-center leading-relaxed mb-sm px-md">
         Нажимая на кнопку вы соглашаетесь с
         <a href="#" class="text-[#007aff] hover:text-primary-hover hover:underline"
-          >Условиями использования сервиса «Gram Гараж»</a
+          >Условиями использования сервиса «0110 Garage»</a
         >, а также с
         <a href="#" class="text-[#007aff] hover:text-primary-hover hover:underline"
           >Политикой конфиденциальности</a

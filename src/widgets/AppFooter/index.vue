@@ -156,7 +156,7 @@ const cities = computed(() => locationStore.cities.slice(0, 8));
       <div
         class="mt-xl flex flex-col gap-md border-t border-hairline-soft pt-lg md:flex-row md:items-center md:justify-between"
       >
-        <p class="tnum text-caption text-ink-soft">© {{ year }} ООО «Gram Garage»</p>
+        <p class="tnum text-caption text-ink-soft">© {{ year }} ООО «0110 Garage»</p>
         <div class="flex flex-wrap gap-x-lg gap-y-xs">
           <a
             href="#"
