@@ -258,6 +258,20 @@ async function uploadPhotos(id: string | number, files: File[]) {
   await apiInstance.post(`/owner/listings/${id}/photos`, form);
 }
 
+/**
+ * Снимки техпаспорта.
+ *
+ * Уходят отдельной ручкой на приватный диск: в объявлении они не
+ * показываются, их смотрит только менеджер, когда сверяет VIN.
+ */
+async function uploadDocuments(id: string | number, files: File[]) {
+  if (!files.length) return;
+
+  const form = new FormData();
+  files.forEach((f) => form.append('documents[]', f));
+  await apiInstance.post(`/owner/listings/${id}/documents`, form);
+}
+
 function readError(e: any, fallback: string): string {
   const errors = e?.response?.data?.errors;
   return (
@@ -276,6 +290,7 @@ async function onAuthSuccess() {
     const created = (data?.data ?? data) as { id: number };
 
     await uploadPhotos(created.id, photos.value);
+    await uploadDocuments(created.id, documents.value);
 
     clearDraft();
     router.push({ name: 'cabinet', query: { published: '1' } });

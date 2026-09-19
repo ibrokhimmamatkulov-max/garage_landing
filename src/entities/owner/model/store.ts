@@ -52,6 +52,16 @@ export const useOwnerStore = defineStore('owner', () => {
     writeToken(newToken);
   }
 
+  /**
+   * Обновление профиля после правки данных.
+   *
+   * setSession для этого не годится: он переписывает токен, а профиль
+   * меняется в уже открытой сессии, и токен при этом прежний.
+   */
+  function setOwner(next: Owner) {
+    owner.value = next;
+  }
+
   function clearSession() {
     token.value = null;
     owner.value = null;
@@ -118,6 +128,7 @@ export const useOwnerStore = defineStore('owner', () => {
     isAuthenticated,
     newApplicationsCount,
     counts,
+    setOwner,
     setSession,
     clearSession,
     loadMe,

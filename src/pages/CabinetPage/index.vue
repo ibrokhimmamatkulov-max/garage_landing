@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useOwnerStore, ownerApi } from '@/entities/owner';
+import { ProfileModal, PasswordModal } from '@/features/owner-profile';
+import { useOwnerStore, ownerApi, type Owner } from '@/entities/owner';
 import ListingStatusBadge from '@/entities/owner/ui/ListingStatusBadge.vue';
 import AppHeader from '@/widgets/AppHeader/index.vue';
 import AppFooter from '@/widgets/AppFooter/index.vue';
@@ -18,6 +19,24 @@ const router = useRouter();
  * Форма уводит сюда после публикации и после правки. Без подтверждения
  * переход выглядит так, будто действие не сработало.
  */
+/* ---------------- профиль ---------------- */
+
+const profileOpen = ref(false);
+const passwordOpen = ref(false);
+/** Короткое подтверждение под кнопками — окно уже закрылось, сказать больше негде */
+const profileNotice = ref<string | null>(null);
+
+function onProfileSaved(owner: Owner) {
+  store.setOwner(owner);
+  profileOpen.value = false;
+  profileNotice.value = 'Данные сохранены.';
+}
+
+function onPasswordSaved() {
+  passwordOpen.value = false;
+  profileNotice.value = 'Пароль изменён.';
+}
+
 const notice = computed(() => {
   if (route.query.published) return 'Объявление опубликовано и уже видно на витрине.';
   if (route.query.saved) return 'Изменения сохранены.';
@@ -343,11 +362,13 @@ async function signOut() {
           <div class="mt-lg flex flex-wrap gap-sm">
             <button
               class="rounded-radius-md border border-hairline px-4 py-2.5 text-small font-semibold text-ink transition-colors duration-fast hover:bg-surface-sunken"
+              @click="profileOpen = true"
             >
               Изменить данные
             </button>
             <button
               class="rounded-radius-md border border-hairline px-4 py-2.5 text-small font-semibold text-ink transition-colors duration-fast hover:bg-surface-sunken"
+              @click="passwordOpen = true"
             >
               Сменить пароль
             </button>
@@ -358,10 +379,27 @@ async function signOut() {
               Выйти
             </button>
           </div>
+
+          <p v-if="profileNotice" class="mt-md text-caption font-semibold text-brand-deep">
+            {{ profileNotice }}
+          </p>
         </div>
       </section>
     </main>
 
     <AppFooter />
+
+    <ProfileModal
+      v-if="profileOpen && store.owner"
+      :owner="store.owner"
+      @close="profileOpen = false"
+      @saved="onProfileSaved"
+    />
+
+    <PasswordModal
+      v-if="passwordOpen"
+      @close="passwordOpen = false"
+      @saved="onPasswordSaved"
+    />
   </div>
 </template>

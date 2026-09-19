@@ -178,3 +178,64 @@ export async function publishListing(id: number) {
 export async function resubmitListing(id: number) {
   await apiInstance.post(`/owner/listings/${id}/resubmit`);
 }
+
+/* ------------------------------------------------------------------ */
+/* Профиль                                                             */
+/* ------------------------------------------------------------------ */
+
+export interface ProfilePatch {
+  firstName: string;
+  lastName: string;
+  middleName: string;
+  ownerType: 'individual' | 'company';
+  companyName: string;
+  tin: string;
+  email: string;
+}
+
+/** Пустые строки шлём как null: сервер ждёт отсутствие значения, а не '' */
+const orNull = (v: string) => (v.trim() === '' ? null : v.trim());
+
+export async function updateProfile(patch: ProfilePatch): Promise<Owner> {
+  const { data } = await apiInstance.patch<Envelope<any>>('/owner/me', {
+    first_name: patch.firstName.trim(),
+    last_name: orNull(patch.lastName),
+    middle_name: orNull(patch.middleName),
+    owner_type: patch.ownerType,
+    // Название компании сервер требует только для юрлица; для частного
+    // лица шлём null, иначе старое название осталось бы висеть в базе.
+    company_name: patch.ownerType === 'company' ? orNull(patch.companyName) : null,
+    tin: orNull(patch.tin),
+    email: orNull(patch.email),
+  });
+
+  return mapOwner(data.data ?? {});
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await apiInstance.post('/owner/me/change-password', {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Документы на машину                                                 */
+/* ------------------------------------------------------------------ */
+
+export interface ListingDocument {
+  id: number;
+  originalName: string;
+  status: 'pending' | 'approved' | 'rejected';
+  comment: string | null;
+}
+
+export async function fetchListingDocuments(listingId: number): Promise<ListingDocument[]> {
+  const { data } = await apiInstance.get<Envelope<any[]>>(`/owner/listings/${listingId}/documents`);
+  return (data.data ?? []).map((d) => ({
+    id: Number(d.id),
+    originalName: String(d.original_name ?? ''),
+    status: d.status === 'approved' || d.status === 'rejected' ? d.status : 'pending',
+    comment: d.comment ?? null,
+  }));
+}

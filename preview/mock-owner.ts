@@ -392,8 +392,31 @@ export function ownerRoutes(
   }
 
   // --- Профиль ---
+  if (pathname === '/api/owner/me' && method === 'PATCH') {
+    // Отражаем присланное обратно: так в превью видно, что правка дошла
+    const next = { ...OWNER, ...body };
+    next.display_name = [body.last_name, body.first_name, body.middle_name]
+      .filter(Boolean)
+      .join(' ') || OWNER.display_name;
+    Object.assign(OWNER, next);
+    return ok(OWNER);
+  }
+
   if (pathname === '/api/owner/me') {
     return ok(OWNER);
+  }
+
+  if (pathname === '/api/owner/me/change-password') {
+    // Проверку старого пароля здесь не воспроизводим, но отказ показать
+    // нужно: без него экран ошибки в превью не посмотреть.
+    return body.current_password === 'wrong'
+      ? fail('Текущий пароль неверен.', 422, { current_password: ['Текущий пароль неверен.'] })
+      : ok({ ok: true });
+  }
+
+  // --- Документы на машину ---
+  if (/^\/api\/owner\/listings\/\d+\/documents(\/\d+)?$/.test(pathname)) {
+    return method === 'GET' ? ok([]) : ok({ ok: true });
   }
 
   // --- Объявления ---
