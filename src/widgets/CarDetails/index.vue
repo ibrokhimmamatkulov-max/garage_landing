@@ -63,18 +63,37 @@ const specs = computed(() => {
     rows.push([label, String(value)]);
   };
 
-  push('Коробка передач', c.transmission);
-  push('Тип топлива', c.fuelType);
   push('Объём двигателя', c.engineVolume ? `${num(c.engineVolume)} л` : null);
   push('Привод', c.driveType ? DRIVE_LABELS[c.driveType] : null);
-  push('Пробег', c.mileage ? `${num(c.mileage)} км` : null);
   push('Кузов', c.bodyType?.name || c.carClass);
-  push('Мест', c.countSeat);
   push('Цвет', c.color?.name);
   if (c.hasTurbo) push('Турбина', 'Есть');
   if (c.hasTaxiLicense) push('Лицензия на такси', 'Есть');
 
   return rows;
+});
+
+/**
+ * Четыре факта, которые арендатор проверяет первыми.
+ *
+ * Вынесены из общего списка в крупные плитки: страница была сплошной
+ * простынёй серых строк «ярлык — значение», зацепиться взгляду было не за что.
+ */
+const keyFacts = computed(() => {
+  const c = props.car;
+  const out: Array<{ value: string; label: string }> = [];
+
+  const push = (value: string | number | null | undefined, label: string) => {
+    if (value === null || value === undefined || value === '') return;
+    out.push({ value: String(value), label });
+  };
+
+  push(c.transmission, 'Коробка');
+  push(c.countSeat, 'Мест');
+  push(c.fuelType, 'Топливо');
+  push(c.mileage ? `${num(c.mileage)} км` : null, 'Пробег');
+
+  return out;
 });
 
 /* ---------- Цена ---------- */
@@ -265,7 +284,7 @@ onUnmounted(() => observer?.disconnect());
         Ко всем автомобилям
       </button>
 
-      <div class="mt-sm grid items-start gap-xl lg:grid-cols-[minmax(0,1fr)_21rem]">
+      <div class="mt-sm grid items-start gap-lg lg:grid-cols-[minmax(0,1fr)_23rem] xl:gap-xl">
         <!-- ================= Основная колонка ================= -->
         <div class="min-w-0">
           <!--
@@ -294,21 +313,40 @@ onUnmounted(() => observer?.disconnect());
           <CarGallery :car="car" />
 
 
-          <!-- ---------- Характеристики ---------- -->
+          <!--
+            Характеристики, опции и описание собраны в одну карточку.
+            Раньше это были три отдельные: одинаковая рамка, радиус и
+            отступы, при этом «Описание» в две строки весило столько же,
+            сколько «Условия аренды» в пол-экрана. Читалось как сплошная
+            белая масса без старшинства.
+          -->
           <div class="mt-lg rounded-radius-lg border border-hairline bg-surface-paper p-lg">
-            <h2 class="text-title font-bold text-ink">Характеристики</h2>
-            <dl class="mt-sm grid gap-x-xl sm:grid-cols-2">
+            <h2 class="text-title font-bold text-ink">О машине</h2>
+
+            <!-- Крупные плитки: то, что проверяют первым -->
+            <dl v-if="keyFacts.length" class="mt-md grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div
+                v-for="f in keyFacts"
+                :key="f.label"
+                class="rounded-radius-md bg-surface-sunken px-3 py-2.5"
+              >
+                <dd class="tnum truncate text-title-sm font-extrabold text-ink">{{ f.value }}</dd>
+                <dt class="mt-0.5 text-caption text-ink-muted">{{ f.label }}</dt>
+              </div>
+            </dl>
+
+            <dl class="mt-md grid gap-x-xl sm:grid-cols-2">
               <div
                 v-for="[label, value] in specs"
                 :key="label"
-                class="flex items-baseline justify-between gap-base border-b border-hairline-soft py-3 last:border-b-0"
+                class="flex items-baseline justify-between gap-base border-b border-hairline-soft py-2.5 last:border-b-0"
               >
                 <dt class="text-small text-ink-muted">{{ label }}</dt>
                 <dd class="tnum text-right text-small font-semibold text-ink">{{ value }}</dd>
               </div>
             </dl>
 
-            <div v-if="car.dopOptions?.length" class="mt-md flex flex-wrap gap-2 border-t border-hairline-soft pt-md">
+            <div v-if="car.dopOptions?.length" class="mt-md flex flex-wrap gap-2">
               <span
                 v-for="opt in car.dopOptions"
                 :key="opt.id"
@@ -317,15 +355,13 @@ onUnmounted(() => observer?.disconnect());
                 {{ opt.name }}
               </span>
             </div>
-          </div>
 
-          <!-- ---------- Описание ---------- -->
-          <div
-            v-if="car.description"
-            class="mt-base rounded-radius-lg border border-hairline bg-surface-paper p-lg"
-          >
-            <h2 class="text-title font-bold text-ink">Описание</h2>
-            <p class="mt-sm whitespace-pre-line text-body text-ink-muted">{{ car.description }}</p>
+            <p
+              v-if="car.description"
+              class="mt-lg whitespace-pre-line border-t border-hairline-soft pt-md text-body text-ink-muted"
+            >
+              {{ car.description }}
+            </p>
           </div>
 
           <!-- ---------- Условия аренды ---------- -->
@@ -394,9 +430,13 @@ onUnmounted(() => observer?.disconnect());
           </div>
 
           <!-- ---------- Занятость ---------- -->
+          <!--
+            Занятость — не ещё одна карточка со сведениями, а предупреждение,
+            поэтому заливка и рамка другие: в общем белом ряду оно терялось.
+          -->
           <div
             v-if="busyPeriods.length"
-            class="mt-base rounded-radius-lg border border-hairline bg-surface-paper p-lg"
+            class="mt-base rounded-radius-lg border border-state-error/25 bg-state-error-tint p-lg"
           >
             <h2 class="text-title font-bold text-ink">Машина занята</h2>
             <!--
@@ -410,7 +450,7 @@ onUnmounted(() => observer?.disconnect());
               <li
                 v-for="p in busyPeriods"
                 :key="p"
-                class="tnum rounded-full bg-state-error-tint px-3 py-1.5 text-caption font-semibold text-state-error"
+                class="tnum rounded-full bg-surface-paper px-3 py-1.5 text-caption font-semibold text-state-error"
               >
                 {{ p }}
               </li>
