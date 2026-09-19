@@ -26,7 +26,14 @@ export const router = createRouter({
     {
       path: '/listings/new',
       name: 'listing-new',
-      component: () => import('@/pages/CreateListingPage/index.vue'),
+      component: () => import('@/pages/ListingFormPage/index.vue'),
+    },
+    {
+      // Та же форма, что и подача: 37 полей в двух копиях неизбежно разъедутся
+      path: '/listings/:id/edit',
+      name: 'listing-edit',
+      component: () => import('@/pages/ListingFormPage/index.vue'),
+      meta: { requiresOwner: true },
     },
     {
       // Форма проходится анонимно, поэтому /rent-out ведёт туда же

@@ -5,12 +5,18 @@ defineOptions({
   name: 'PhotoUploader',
 });
 
-const props = defineProps<{
-  modelValue: File[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: File[];
+    /** Уже загруженные снимки — только в режиме правки объявления */
+    existing?: Array<{ id: number; url: string }>;
+  }>(),
+  { existing: () => [] },
+);
 
 const emit = defineEmits<{
   'update:modelValue': [files: File[]];
+  'remove-existing': [id: number];
 }>();
 
 const MAX = 15;
@@ -23,7 +29,17 @@ const items = computed(() =>
   props.modelValue.map((f, i) => ({ key: `${f.name}-${i}`, name: f.name, url: URL.createObjectURL(f) })),
 );
 
-const left = computed(() => Math.max(0, MIN - props.modelValue.length));
+/** Минимум и максимум считаются по обоим спискам вместе */
+const total = computed(() => props.existing.length + props.modelValue.length);
+const left = computed(() => Math.max(0, MIN - total.value));
+
+/**
+ * Переставить главную можно, только пока все снимки новые.
+ *
+ * У загруженных порядок задаёт сервер, а ручки «переупорядочить» у него нет —
+ * кнопка делала бы вид, что меняет главную, и забывала бы это после сохранения.
+ */
+const canReorder = computed(() => props.existing.length === 0);
 
 function onPick(event: Event) {
   const input = event.target as HTMLInputElement;
@@ -38,7 +54,7 @@ function onPick(event: Event) {
   }
 
   const next = [...props.modelValue, ...picked];
-  if (next.length > MAX) {
+  if (props.existing.length + next.length > MAX) {
     error.value = `Больше ${MAX} фотографий загрузить нельзя.`;
     input.value = '';
     return;
@@ -65,13 +81,14 @@ function makeMain(index: number) {
 <template>
   <div>
     <div class="grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-sm">
+      <!-- Уже загруженные: их можно только удалить -->
       <div
-        v-for="(item, i) in items"
-        :key="item.key"
+        v-for="(photo, i) in existing"
+        :key="`saved-${photo.id}`"
         class="group relative aspect-[4/3] overflow-hidden rounded-radius-md border bg-surface-sunken"
         :class="i === 0 ? 'border-brand-ink' : 'border-hairline'"
       >
-        <img :src="item.url" :alt="item.name" class="h-full w-full object-cover" />
+        <img :src="photo.url" alt="" class="h-full w-full object-cover" />
 
         <span
           v-if="i === 0"
@@ -79,8 +96,35 @@ function makeMain(index: number) {
         >
           Главная
         </span>
+
         <button
-          v-else
+          type="button"
+          class="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-ink/70 text-white transition-colors duration-fast hover:bg-state-error"
+          aria-label="Удалить фотографию"
+          @click="emit('remove-existing', photo.id)"
+        >
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      <div
+        v-for="(item, i) in items"
+        :key="item.key"
+        class="group relative aspect-[4/3] overflow-hidden rounded-radius-md border bg-surface-sunken"
+        :class="canReorder && i === 0 ? 'border-brand-ink' : 'border-hairline'"
+      >
+        <img :src="item.url" :alt="item.name" class="h-full w-full object-cover" />
+
+        <span
+          v-if="canReorder && i === 0"
+          class="absolute left-1.5 top-1.5 rounded-full bg-brand px-2 py-0.5 text-caption font-bold text-brand-on"
+        >
+          Главная
+        </span>
+        <button
+          v-else-if="canReorder"
           type="button"
           class="absolute left-1.5 top-1.5 rounded-full bg-ink/70 px-2 py-0.5 text-caption font-semibold text-white opacity-0 transition-opacity duration-fast group-hover:opacity-100 focus-visible:opacity-100"
           @click="makeMain(i)"
@@ -101,7 +145,7 @@ function makeMain(index: number) {
       </div>
 
       <label
-        v-if="modelValue.length < MAX"
+        v-if="total < MAX"
         class="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-radius-md border-2 border-dashed border-hairline-strong bg-surface-sunken text-ink-soft transition-colors duration-fast hover:border-brand-ink hover:text-brand-ink"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -114,11 +158,13 @@ function makeMain(index: number) {
 
     <p v-if="error" class="mt-sm text-caption text-state-error">{{ error }}</p>
     <p v-else-if="left > 0" class="mt-sm text-caption text-ink-soft">
-      Загружено {{ modelValue.length }} из {{ MIN }} минимально нужных. Можно выбрать несколько
+      Загружено {{ total }} из {{ MIN }} минимально нужных. Можно выбрать несколько
       файлов сразу.
     </p>
     <p v-else class="mt-sm text-caption text-ink-soft">
-      Загружено {{ modelValue.length }}. Наведите на снимок, чтобы сделать его главным.
+      Загружено {{ total }}.
+      <template v-if="canReorder">Наведите на снимок, чтобы сделать его главным.</template>
+      <template v-else>Первый снимок — главный, его видят в каталоге.</template>
     </p>
   </div>
 </template>

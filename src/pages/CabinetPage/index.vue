@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useOwnerStore, ownerApi } from '@/entities/owner';
 import ListingStatusBadge from '@/entities/owner/ui/ListingStatusBadge.vue';
 import AppHeader from '@/widgets/AppHeader/index.vue';
@@ -11,7 +11,18 @@ defineOptions({
   name: 'CabinetPage',
 });
 
+const route = useRoute();
 const router = useRouter();
+
+/**
+ * Форма уводит сюда после публикации и после правки. Без подтверждения
+ * переход выглядит так, будто действие не сработало.
+ */
+const notice = computed(() => {
+  if (route.query.published) return 'Объявление опубликовано и уже видно на витрине.';
+  if (route.query.saved) return 'Изменения сохранены.';
+  return null;
+});
 const store = useOwnerStore();
 
 type Tab = 'listings' | 'applications' | 'profile';
@@ -66,6 +77,20 @@ async function signOut() {
     <main class="container flex-1 py-xl">
       <header class="flex flex-wrap items-start justify-between gap-md">
         <div>
+          <p
+            v-if="notice"
+            class="mb-md inline-flex items-center gap-2 rounded-radius-md bg-brand-tint px-3 py-2 text-caption font-semibold text-brand-deep"
+          >
+            <span
+              class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-brand-on"
+              aria-hidden="true"
+            >
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                <path d="M2.5 6.2l2.4 2.4L9.5 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
+            {{ notice }}
+          </p>
           <h1 class="text-display-sm font-extrabold text-ink">Личный кабинет</h1>
           <p class="mt-1 text-body text-ink-muted">
             {{ store.owner?.displayName || 'Загружаем…' }}
@@ -207,11 +232,12 @@ async function signOut() {
                           : 'Опубликовать'
                     }}
                   </button>
-                  <button
+                  <router-link
+                    :to="{ name: 'listing-edit', params: { id: l.id } }"
                     class="rounded-radius-md border border-hairline px-3.5 py-2 text-caption font-semibold text-ink transition-colors duration-fast hover:bg-surface-sunken"
                   >
                     Изменить
-                  </button>
+                  </router-link>
                 </div>
               </div>
             </div>

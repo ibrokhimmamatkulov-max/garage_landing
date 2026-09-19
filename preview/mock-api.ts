@@ -424,7 +424,7 @@ export function mockApi(): Plugin {
               }
             }
             const result = p.startsWith('/api/owner/')
-              ? ownerRoutes(p, url, body)
+              ? ownerRoutes(p, url, body, req.method ?? 'GET')
               : adminRoutes(p, url, body);
             if (!result) {
               res.statusCode = 404;

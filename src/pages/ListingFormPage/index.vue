@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { apiInstance } from '@/shared/api';
 import AppHeader from '@/widgets/AppHeader/index.vue';
 import AppFooter from '@/widgets/AppFooter/index.vue';
@@ -18,18 +18,100 @@ import {
   saveDraft,
   type ListingDraft,
 } from '@/features/create-listing/model/draft';
+import {
+  draftToPayload,
+  listingToDraft,
+  type ApiOwnerListing,
+} from '@/features/create-listing/model/mapListing';
+import { formatPhotoUrl } from '@/shared/lib/photoUrl';
 
+/**
+ * Одна форма на подачу и на правку.
+ *
+ * Полей тридцать семь; во второй копии они неминуемо разъехались бы, и
+ * правка молча теряла бы то, что появилось в подаче. Режим различается
+ * только наличием id в адресе.
+ */
 defineOptions({
-  name: 'CreateListingPage',
+  name: 'ListingFormPage',
 });
 
+const route = useRoute();
 const router = useRouter();
 
-const draft = reactive<ListingDraft>(loadDraft() ?? emptyDraft());
+const listingId = computed(() => (route.params.id ? String(route.params.id) : null));
+const isEdit = computed(() => listingId.value !== null);
+
+// Черновик из localStorage — только для подачи. Подставлять его в правку
+// нельзя: это заготовка другого, ещё не созданного объявления.
+const storedDraft = route.params.id ? null : loadDraft();
+
+const draft = reactive<ListingDraft>(storedDraft ?? emptyDraft());
 const documents = ref<File[]>([]);
 const photos = ref<File[]>([]);
-const restoredFromDraft = ref(Boolean(loadDraft()));
+const restoredFromDraft = ref(Boolean(storedDraft));
 const submitting = ref(false);
+
+/* ---------------- правка ---------------- */
+
+const loading = ref(false);
+const loadError = ref<string | null>(null);
+const saveError = ref<string | null>(null);
+const vinVerified = ref(false);
+
+/** Загруженные ранее снимки и те из них, что владелец пометил на удаление */
+const savedPhotos = ref<Array<{ id: number; url: string }>>([]);
+const removedPhotoIds = ref<number[]>([]);
+
+const visiblePhotos = computed(() =>
+  savedPhotos.value.filter((p) => !removedPhotoIds.value.includes(p.id)),
+);
+
+/**
+ * Удаление откладываем до сохранения.
+ *
+ * Ручка удаления на сервере необратима, а из формы можно уйти не сохранившись —
+ * снимок исчез бы у того, кто просто передумал редактировать.
+ */
+function markPhotoRemoved(id: number) {
+  if (!removedPhotoIds.value.includes(id)) removedPhotoIds.value.push(id);
+}
+
+/**
+ * Пока идёт заполнение формы с сервера, следим, чтобы наблюдатель за маркой
+ * не сбросил модель: он для того и написан, что при смене марки старая
+ * модель становится неверной, но при загрузке они приходят согласованной парой.
+ */
+let hydrating = false;
+
+async function loadListing(id: string) {
+  loading.value = true;
+  loadError.value = null;
+  try {
+    const { data } = await apiInstance.get(`/owner/listings/${id}`);
+    const listing = (data?.data ?? data) as ApiOwnerListing;
+
+    hydrating = true;
+    Object.assign(draft, listingToDraft(listing));
+
+    savedPhotos.value = (listing.photos ?? []).map((p) => ({
+      id: p.id,
+      url: formatPhotoUrl(p.url),
+    }));
+    vinVerified.value = Boolean(listing.vin_verified);
+
+    if (draft.brandId) await loadModels(draft.brandId);
+    await nextTick();
+    hydrating = false;
+  } catch (e: any) {
+    loadError.value =
+      e?.response?.status === 404
+        ? 'Объявление не найдено или принадлежит другому аккаунту.'
+        : 'Не удалось загрузить объявление.';
+  } finally {
+    loading.value = false;
+  }
+}
 
 /* ---------------- справочники ---------------- */
 
@@ -77,6 +159,11 @@ onMounted(async () => {
   fuelTypes.value = f;
   reference.value = ref_;
 
+  if (listingId.value) {
+    await loadListing(listingId.value);
+    return;
+  }
+
   if (draft.brandId) await loadModels(draft.brandId);
 });
 
@@ -90,7 +177,7 @@ async function loadModels(brandId: string) {
 watch(
   () => draft.brandId,
   async (id, prev) => {
-    if (prev !== undefined && id !== prev) draft.modelId = '';
+    if (!hydrating && prev !== undefined && id !== prev) draft.modelId = '';
     if (id) await loadModels(id);
     else models.value = [];
   },
@@ -98,7 +185,13 @@ watch(
 
 /* ---------------- черновик ---------------- */
 
-watch(draft, () => saveDraft(draft), { deep: true });
+watch(
+  draft,
+  () => {
+    if (!isEdit.value) saveDraft(draft);
+  },
+  { deep: true },
+);
 
 /* ---------------- готовность ---------------- */
 
@@ -123,7 +216,7 @@ const REQUIRED: Array<[keyof ListingDraft, string]> = [
 const missing = computed(() => {
   const out = REQUIRED.filter(([key]) => !String(draft[key] ?? '').trim()).map(([, label]) => label);
 
-  if (photos.value.length < 3) out.push('Минимум 3 фотографии');
+  if (visiblePhotos.value.length + photos.value.length < 3) out.push('Минимум 3 фотографии');
   if (!draft.priceTiers.some((t) => Number(t.pricePerDay) > 0)) out.push('Цена аренды');
 
   return out;
@@ -145,18 +238,73 @@ const minPrice = computed(() => {
 const authOpen = ref(false);
 
 function submit() {
-  if (!canSubmit.value) return;
+  if (!canSubmit.value || submitting.value) return;
+
+  // В правке владелец уже вошёл — спрашивать код второй раз незачем
+  if (isEdit.value) {
+    void save();
+    return;
+  }
+
   authOpen.value = true;
+}
+
+/** Загрузка снимков одной пачкой: ручка принимает массив photos[] */
+async function uploadPhotos(id: string | number, files: File[]) {
+  if (!files.length) return;
+
+  const form = new FormData();
+  files.forEach((f) => form.append('photos[]', f));
+  await apiInstance.post(`/owner/listings/${id}/photos`, form);
+}
+
+function readError(e: any, fallback: string): string {
+  const errors = e?.response?.data?.errors;
+  return (
+    (errors && (Object.values(errors)[0] as string[] | undefined)?.[0]) ??
+    e?.response?.data?.message ??
+    fallback
+  );
 }
 
 async function onAuthSuccess() {
   authOpen.value = false;
   submitting.value = true;
+  saveError.value = null;
   try {
-    // Здесь уйдёт POST /owner/listings с уже полученным токеном,
-    // затем догрузка фотографий и документов.
+    const { data } = await apiInstance.post('/owner/listings', draftToPayload(draft));
+    const created = (data?.data ?? data) as { id: number };
+
+    await uploadPhotos(created.id, photos.value);
+
     clearDraft();
     router.push({ name: 'cabinet', query: { published: '1' } });
+  } catch (e: any) {
+    saveError.value = readError(e, 'Не удалось опубликовать объявление.');
+  } finally {
+    submitting.value = false;
+  }
+}
+
+async function save() {
+  const id = listingId.value;
+  if (!id) return;
+
+  submitting.value = true;
+  saveError.value = null;
+  try {
+    await apiInstance.patch(`/owner/listings/${id}`, draftToPayload(draft));
+
+    // Удаление отложено до сохранения, поэтому применяем его здесь
+    for (const photoId of removedPhotoIds.value) {
+      await apiInstance.delete(`/owner/listings/${id}/photos/${photoId}`);
+    }
+
+    await uploadPhotos(id, photos.value);
+
+    router.push({ name: 'cabinet', query: { saved: '1' } });
+  } catch (e: any) {
+    saveError.value = readError(e, 'Не удалось сохранить изменения.');
   } finally {
     submitting.value = false;
   }
@@ -171,11 +319,16 @@ async function onAuthSuccess() {
       <div class="mx-auto max-w-[52rem]">
         <header class="mb-xl">
           <h1 class="text-display-sm font-extrabold text-ink sm:text-display">
-            Сдать автомобиль в аренду
+            {{ isEdit ? 'Редактирование объявления' : 'Сдать автомобиль в аренду' }}
           </h1>
           <p class="mt-sm max-w-[36rem] text-body text-ink-muted">
-            Заполните данные — после проверки объявление появится на сайте. Войти попросим
-            только в конце, перед публикацией.
+            <template v-if="isEdit">
+              Изменения появятся на витрине сразу после сохранения.
+            </template>
+            <template v-else>
+              Заполните данные — после проверки объявление появится на сайте. Войти попросим
+              только в конце, перед публикацией.
+            </template>
           </p>
           <p
             v-if="restoredFromDraft"
@@ -185,7 +338,20 @@ async function onAuthSuccess() {
           </p>
         </header>
 
-        <div class="flex flex-col gap-lg">
+        <p
+          v-if="loading"
+          class="rounded-radius-lg border border-hairline bg-surface-paper p-lg text-body text-ink-muted"
+        >
+          Загружаем объявление…
+        </p>
+        <p
+          v-else-if="loadError"
+          class="rounded-radius-lg border border-state-error bg-state-error-tint p-lg text-body text-state-error"
+        >
+          {{ loadError }}
+        </p>
+
+        <div v-if="!loading && !loadError" class="flex flex-col gap-lg">
           <!-- ---------- Автомобиль ---------- -->
           <section class="rounded-radius-lg border border-hairline bg-surface-paper p-lg">
             <h2 class="text-title font-bold text-ink">Автомобиль</h2>
@@ -261,7 +427,32 @@ async function onAuthSuccess() {
           </section>
 
           <!-- ---------- Документы ---------- -->
-          <DocumentCheck v-model="documents" />
+          <!--
+            В правке техпаспорт заново не просим: VIN сверяет менеджер один раз,
+            а повторная загрузка документов ничего не проверяет.
+          -->
+          <section
+            v-if="isEdit"
+            class="rounded-radius-lg border border-hairline bg-surface-paper p-lg"
+          >
+            <h2 class="text-title font-bold text-ink">Документы</h2>
+            <p v-if="vinVerified" class="mt-sm flex items-center gap-2 text-small text-ink-muted">
+              <span
+                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-brand-on"
+                aria-hidden="true"
+              >
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                  <path d="M2.5 6.2l2.4 2.4L9.5 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
+              VIN проверен по техпаспорту. Заново загружать документы не нужно.
+            </p>
+            <p v-else class="mt-sm text-small text-ink-muted">
+              Техпаспорт на проверке. Отметка «VIN проверен» появится в объявлении, когда менеджер
+              сверит документы.
+            </p>
+          </section>
+          <DocumentCheck v-else v-model="documents" />
 
           <!-- ---------- Фотографии ---------- -->
           <section class="rounded-radius-lg border border-hairline bg-surface-paper p-lg">
@@ -269,7 +460,15 @@ async function onAuthSuccess() {
             <p class="mt-1 text-small text-ink-muted">
               От 3 до 15 снимков. Первый станет главным — его видят в каталоге.
             </p>
-            <PhotoUploader v-model="photos" class="mt-lg" />
+            <PhotoUploader
+              v-model="photos"
+              :existing="visiblePhotos"
+              class="mt-lg"
+              @remove-existing="markPhotoRemoved"
+            />
+            <p v-if="removedPhotoIds.length" class="mt-sm text-caption text-ink-soft">
+              Помечено к удалению: {{ removedPhotoIds.length }}. Снимки исчезнут после сохранения.
+            </p>
           </section>
 
           <!-- ---------- Условия аренды ---------- -->
@@ -420,11 +619,17 @@ async function onAuthSuccess() {
     </main>
 
     <!-- Липкая панель публикации: всегда видно, чего не хватает -->
-    <div class="sticky bottom-0 z-50 border-t border-hairline bg-surface-paper/95 backdrop-blur-xl">
+    <div
+      v-if="!loading && !loadError"
+      class="sticky bottom-0 z-50 border-t border-hairline bg-surface-paper/95 backdrop-blur-xl"
+    >
       <div class="container flex flex-wrap items-center justify-between gap-md py-md">
         <div class="min-w-0">
-          <p v-if="canSubmit" class="text-small font-semibold text-brand-ink">
-            Всё заполнено — можно публиковать
+          <p v-if="saveError" class="text-small font-semibold text-state-error">
+            {{ saveError }}
+          </p>
+          <p v-else-if="canSubmit" class="text-small font-semibold text-brand-ink">
+            {{ isEdit ? 'Всё заполнено — можно сохранять' : 'Всё заполнено — можно публиковать' }}
           </p>
           <p v-else class="text-small text-ink-muted">
             Осталось заполнить:
@@ -442,7 +647,8 @@ async function onAuthSuccess() {
           class="shrink-0 rounded-radius-md bg-brand px-6 py-3 text-body font-semibold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
           @click="submit"
         >
-          Опубликовать
+          <template v-if="submitting">Сохраняем…</template>
+          <template v-else>{{ isEdit ? 'Сохранить' : 'Опубликовать' }}</template>
         </button>
       </div>
     </div>

@@ -237,7 +237,130 @@ export const REFERENCE = {
   }),
 };
 
-export function ownerRoutes(pathname: string, url: URL, body: Record<string, unknown>) {
+/*
+  Справочники продублированы намеренно: mock-api импортирует этот файл,
+  и обратный импорт замкнул бы цикл. Списки короткие и меняются вместе.
+*/
+const ID_BY_NAME = {
+  city: { 'Худжанд': 1, 'Душанбе': 2, 'Бохтар': 3, 'Куляб': 4 } as Record<string, number>,
+  gearbox: { 'Автомат': 1, 'Механика': 2, 'Робот': 3 } as Record<string, number>,
+  fuel: {
+    'Бензин': 1, 'Дизель': 2, 'Гибрид': 3, 'Электро': 4, 'Газ / бензин': 5,
+  } as Record<string, number>,
+  body: {
+    'Седан': 1, 'Хэтчбек': 2, 'Кроссовер': 3, 'Универсал': 4, 'Минивэн': 5, 'Пикап': 6,
+  } as Record<string, number>,
+  brand: {
+    'Chevrolet': 1, 'Toyota': 2, 'Hyundai': 3, 'Kia': 4, 'Changan': 5,
+    'Geely': 6, 'Chery': 7, 'BYD': 8, 'Nissan': 9, 'Mercedes-Benz': 10,
+  } as Record<string, number>,
+  model: {
+    'Cobalt': 11, 'Nexia': 12, 'Malibu': 13, 'Camry': 21, 'Corolla': 22,
+    'Land Cruiser Prado': 23, 'Tucson': 31, 'Elantra': 32, 'Rio': 41,
+    'Sportage': 42, 'Alsvin': 51, 'Emgrand': 61, 'Tiggo 4': 71,
+    'Song Plus': 81, 'X-Trail': 91, 'E 200': 101,
+  } as Record<string, number>,
+};
+
+/** Снимок-заглушка: квадрат заданного тона, чтобы плитки отличались */
+const photoStub = (hue: number) =>
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240">` +
+      `<rect width="320" height="240" fill="hsl(${hue} 30% 78%)"/>` +
+      `<rect x="60" y="95" width="200" height="60" rx="14" fill="hsl(${hue} 45% 55%)"/>` +
+      `</svg>`,
+  );
+
+/**
+ * Объявление в том виде, в каком его отдаёт OwnerListingResource.
+ *
+ * Список в кабинете обходится плоскими полями, а форме правки нужны id
+ * справочников, ступени цены, условия и снимки — иначе она заполнится
+ * пустыми значениями и затрёт их при сохранении.
+ */
+function listingDetail(l: Listing) {
+  return {
+    id: l.id,
+    title: l.title,
+    description:
+      `${l.brand} ${l.model} ${l.year} года. Обслуживается у официального дилера, ` +
+      'салон чистый, кондиционер заправлен.',
+    listing_type: 'general',
+    moderation_status: l.moderation_status,
+    rejection_reason: l.rejection_reason,
+    views_count: l.views_count,
+    applications_count: l.applications_count,
+
+    brand: l.brand,
+    brand_id: ID_BY_NAME.brand[l.brand] ?? null,
+    model: l.model,
+    car_model_id: ID_BY_NAME.model[l.model] ?? null,
+    year: l.year,
+    car_number: l.car_number,
+    count_seat: 5,
+    address: 'Худжанд, ул. Ленина, 154',
+    dop_info: null,
+    min_rent_days: l.min_rent_days,
+    max_rent_days: 30,
+
+    city: { id: ID_BY_NAME.city[l.city] ?? 1, name: l.city },
+    gearbox: { id: ID_BY_NAME.gearbox[l.gearbox] ?? 1, name: l.gearbox },
+    body_type: { id: ID_BY_NAME.body[l.body] ?? 1, name: l.body },
+    color: { id: 2, name: 'Чёрный' },
+    fuel_type: { id: ID_BY_NAME.fuel[l.fuel] ?? 1, name: l.fuel },
+
+    condition_id: 2,
+    customs_cleared: true,
+    engine_volume: l.engine_volume,
+    mileage: l.mileage,
+    drive_type: l.body === 'Кроссовер' ? 'awd' : 'fwd',
+    has_taxi_license: false,
+    has_turbo: false,
+    vin_verified: l.vin_verified,
+
+    min_price: l.min_price,
+    price_tiers: [
+      { id: l.id * 10, min_days: l.min_rent_days, max_days: 7, price_per_day: l.min_price },
+      { id: l.id * 10 + 1, min_days: 8, max_days: null, price_per_day: Math.round(l.min_price * 0.9) },
+    ],
+
+    terms: {
+      deposit_amount: 1500,
+      deposit_return_policy: 'on_return',
+      deposit_daily_return: null,
+      mileage_limit_per_day: 250,
+      overmileage_price: 1.5,
+      fuel_policy: 'full_to_full',
+      min_driver_age: 23,
+      min_driver_experience: 3,
+      documents_pledge: 'passport',
+      require_clean_record: true,
+      allow_taxi: false,
+      allow_intercity: true,
+      allow_abroad: false,
+      allow_smoking: false,
+      allow_pets: false,
+      delivery_available: true,
+      delivery_price: 50,
+      additional_terms: null,
+    },
+
+    unavailable_periods: [],
+    photos: [
+      { id: l.id * 100 + 1, url: photoStub((l.id * 47) % 360) },
+      { id: l.id * 100 + 2, url: photoStub((l.id * 47 + 40) % 360) },
+      { id: l.id * 100 + 3, url: photoStub((l.id * 47 + 80) % 360) },
+    ],
+  };
+}
+
+export function ownerRoutes(
+  pathname: string,
+  url: URL,
+  body: Record<string, unknown>,
+  method = 'GET',
+) {
   // --- Авторизация ---
   if (pathname === '/api/owner/auth/request-otp') {
     return ok({
@@ -274,6 +397,11 @@ export function ownerRoutes(pathname: string, url: URL, body: Record<string, unk
   }
 
   // --- Объявления ---
+  // Создание: списку и созданию достался один адрес, различает их метод
+  if (pathname === '/api/owner/listings' && method === 'POST') {
+    return ok({ id: 999, moderation_status: 'published' });
+  }
+
   if (pathname === '/api/owner/listings') {
     const status = url.searchParams.get('status');
     const rows = status
@@ -286,10 +414,15 @@ export function ownerRoutes(pathname: string, url: URL, body: Record<string, unk
     });
   }
 
-  const listingDetail = pathname.match(/^\/api\/owner\/listings\/(\d+)$/);
-  if (listingDetail) {
-    const listing = LISTINGS.find((l) => l.id === Number(listingDetail[1]));
-    return listing ? ok(listing) : fail('Объявление не найдено.', 404);
+  const detailMatch = pathname.match(/^\/api\/owner\/listings\/(\d+)$/);
+  if (detailMatch) {
+    const listing = LISTINGS.find((l) => l.id === Number(detailMatch[1]));
+    return listing ? ok(listingDetail(listing)) : fail('Объявление не найдено.', 404);
+  }
+
+  // Правка, удаление снимка и догрузка новых — подтверждаем без побочных эффектов
+  if (/^\/api\/owner\/listings\/\d+\/photos(\/\d+)?$/.test(pathname)) {
+    return ok({ ok: true });
   }
 
   // --- Заявки ---

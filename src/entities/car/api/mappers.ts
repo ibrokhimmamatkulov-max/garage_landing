@@ -1,3 +1,4 @@
+import { formatPhotoUrl, PHOTO_PLACEHOLDER } from '@/shared/lib/photoUrl';
 import type { Car, CarDriveType, CarTerms, DepositReturnPolicy, FuelPolicy } from '../model/types';
 
 export interface ApiCarData {
@@ -128,26 +129,7 @@ function mapTerms(raw: NonNullable<ApiCarData['terms']>): CarTerms {
   };
 }
 
-const PLACEHOLDER_IMAGE = 'https://placehold.co/800x600/f2f2ef/8c8c86?text=%20';
-
-/** Домен больше не зашит в код — см. .env.example */
-const STORAGE_BASE = (
-  import.meta.env.VITE_STORAGE_BASE_URL || 'https://auto-baza.gram.tj'
-).replace(/\/+$/, '');
-
-const formatPhotoUrl = (url: string) => {
-  if (!url) return PLACEHOLDER_IMAGE;
-  // Абсолютные адреса и data/blob отдаём как есть — приклеивать к ним домен нельзя
-  if (/^(https?:|data:|blob:)/.test(url)) return url;
-
-  const cleanUrl = url.startsWith('/') ? url.substring(1) : url;
-
-  if (cleanUrl.startsWith('storage/')) {
-    return `${STORAGE_BASE}/${cleanUrl}`;
-  }
-
-  return `${STORAGE_BASE}/storage/${cleanUrl}`;
-};
+const PLACEHOLDER_IMAGE = PHOTO_PLACEHOLDER;
 
 export function mapCar(apiData: ApiCarData): Car {
   const photos =
