@@ -247,7 +247,7 @@ onUnmounted(() => observer?.disconnect());
 </script>
 
 <template>
-  <section class="flex-1 bg-surface-canvas pb-28 lg:pb-3xl">
+  <section class="flex-1 bg-surface-canvas pb-2xl lg:pb-3xl">
     <div class="container pt-base lg:pt-lg">
       <button
         class="-ml-2 flex h-11 items-center gap-1.5 rounded-full px-2 text-small font-semibold text-ink-muted transition-colors duration-fast hover:text-ink"
@@ -268,9 +268,12 @@ onUnmounted(() => observer?.disconnect());
       <div class="mt-sm grid items-start gap-xl lg:grid-cols-[minmax(0,1fr)_21rem]">
         <!-- ================= Основная колонка ================= -->
         <div class="min-w-0">
-          <CarGallery :car="car" />
-
-          <header class="mt-lg">
+          <!--
+            Название выше галереи: при фото 16:10 на всю колонку заголовок
+            уезжал за край первого экрана, и машину нельзя было назвать,
+            не прокрутив страницу.
+          -->
+          <header class="mb-base">
             <h1 class="text-balance text-display-sm font-extrabold leading-tight text-ink">
               {{ car.brand }} {{ car.model }}
             </h1>
@@ -287,6 +290,9 @@ onUnmounted(() => observer?.disconnect());
               </span>
             </div>
           </header>
+
+          <CarGallery :car="car" />
+
 
           <!-- ---------- Характеристики ---------- -->
           <div class="mt-lg rounded-radius-lg border border-hairline bg-surface-paper p-lg">
