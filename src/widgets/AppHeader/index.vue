@@ -75,7 +75,7 @@ watch(
     class="sticky top-0 z-[100] bg-surface-paper/85 backdrop-blur-xl transition-shadow duration-base ease-out"
     :class="isScrolled ? 'shadow-header' : 'shadow-none'"
   >
-    <div class="container flex h-[60px] items-center justify-between gap-base">
+    <div class="container flex h-[var(--header-h)] items-center justify-between gap-base">
       <router-link
         to="/"
         class="shrink-0 text-ink no-underline transition-opacity duration-fast hover:opacity-70"
