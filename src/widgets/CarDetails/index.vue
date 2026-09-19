@@ -284,32 +284,33 @@ onUnmounted(() => observer?.disconnect());
         Ко всем автомобилям
       </button>
 
-      <div class="mt-sm grid items-start gap-lg lg:grid-cols-[minmax(0,1fr)_23rem] xl:gap-xl">
+      <!--
+        Заголовок над обеими колонками, а не внутри левой.
+        Пока он был частью левой колонки, фотография начиналась ниже
+        карточки с ценой: колонки стартовали на разной высоте, и верх
+        страницы читался как сбитый.
+      -->
+      <header class="mt-sm">
+        <h1 class="text-balance text-display-sm font-extrabold leading-tight text-ink">
+          {{ car.brand }} {{ car.model }}
+        </h1>
+        <p class="tnum mt-1.5 text-body-lg text-ink-muted">{{ subtitle }}</p>
+
+        <div v-if="badges.length" class="mt-md flex flex-wrap gap-2">
+          <span
+            v-for="b in badges"
+            :key="b.text"
+            class="rounded-full px-3 py-1.5 text-caption font-semibold"
+            :class="b.tone === 'brand' ? 'bg-ink text-white' : 'bg-brand-tint text-brand-deep'"
+          >
+            {{ b.text }}
+          </span>
+        </div>
+      </header>
+
+      <div class="mt-base grid items-start gap-lg lg:grid-cols-[minmax(0,1fr)_23rem] xl:gap-xl">
         <!-- ================= Основная колонка ================= -->
         <div class="min-w-0">
-          <!--
-            Название выше галереи: при фото 16:10 на всю колонку заголовок
-            уезжал за край первого экрана, и машину нельзя было назвать,
-            не прокрутив страницу.
-          -->
-          <header class="mb-base">
-            <h1 class="text-balance text-display-sm font-extrabold leading-tight text-ink">
-              {{ car.brand }} {{ car.model }}
-            </h1>
-            <p class="tnum mt-1.5 text-body-lg text-ink-muted">{{ subtitle }}</p>
-
-            <div v-if="badges.length" class="mt-md flex flex-wrap gap-2">
-              <span
-                v-for="b in badges"
-                :key="b.text"
-                class="rounded-full px-3 py-1.5 text-caption font-semibold"
-                :class="b.tone === 'brand' ? 'bg-ink text-white' : 'bg-brand-tint text-brand-deep'"
-              >
-                {{ b.text }}
-              </span>
-            </div>
-          </header>
-
           <CarGallery :car="car" />
 
 
@@ -459,7 +460,7 @@ onUnmounted(() => observer?.disconnect());
         </div>
 
         <!-- ================= Боковая колонка ================= -->
-        <aside class="lg:sticky lg:top-lg">
+        <aside class="lg:sticky lg:top-[calc(var(--header-h)+1.5rem)]">
           <div class="rounded-radius-lg border border-hairline bg-surface-paper p-lg shadow-card">
             <p class="text-caption font-bold uppercase tracking-[0.08em] text-ink-soft">
               {{ hasTierTable ? 'Цена от' : 'Стоимость' }}
