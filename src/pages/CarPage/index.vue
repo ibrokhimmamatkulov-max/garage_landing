@@ -62,6 +62,13 @@ function handleBack() {
 
     <AppFooter />
 
+    <!--
+      Просвет под закреплённой панелью: без него она навсегда закрывала
+      нижние строки подвала — дальше страница уже не прокручивается.
+      Фон совпадает с подвалом, чтобы полоса не читалась отдельным блоком.
+    -->
+    <div class="h-[4.75rem] bg-surface-paper lg:hidden" aria-hidden="true" />
+
     <!-- Modals -->
     <FilterModal v-if="isFilterOpen" @close="isFilterOpen = false" />
 
