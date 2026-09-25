@@ -52,6 +52,13 @@ const photos = ref<File[]>([]);
 const restoredFromDraft = ref(Boolean(storedDraft));
 const submitting = ref(false);
 
+/**
+ * Редкие поля свёрнуты по умолчанию — растаможка, пробег, число мест,
+ * турбина, лицензия на такси. Ни одно не обязательно, форма из 37 полей
+ * не должна казаться длиннее, чем она есть; кто хочет — раскроет галочкой.
+ */
+const showOptionalFields = ref(false);
+
 /* ---------------- правка ---------------- */
 
 const loading = ref(false);
@@ -93,6 +100,14 @@ async function loadListing(id: string) {
 
     hydrating = true;
     Object.assign(draft, listingToDraft(listing));
+
+    // Поля свёрнуты по умолчанию, но если в объявлении они уже заполнены —
+    // прятать их значило бы выглядеть как потеря данных при открытии правки.
+    // '0' у да/нет-полей — тоже осознанный ответ («растаможки нет»), а не
+    // пропуск, поэтому проверка на непустую строку, а не строго на '1'.
+    if (draft.customsCleared || draft.mileage || draft.countSeat || draft.hasTurbo || draft.hasTaxiLicense) {
+      showOptionalFields.value = true;
+    }
 
     savedPhotos.value = (listing.photos ?? []).map((p) => ({
       id: p.id,
@@ -195,26 +210,50 @@ watch(
 
 /* ---------------- готовность ---------------- */
 
+/**
+ * Растаможен в РТ, лицензия на такси, турбина — раньше были обязательными
+ * без причины: это не то, без чего объявление бессмысленно, а лишняя
+ * причина не отправить форму. Теперь необязательны и спрятаны за
+ * «Показать ещё поля», как пробег и число мест.
+ */
 const REQUIRED: Array<[keyof ListingDraft, string]> = [
   ['cityId', 'Город'],
   ['brandId', 'Марка'],
   ['modelId', 'Модель'],
   ['year', 'Год выпуска'],
   ['conditionId', 'Состояние'],
-  ['customsCleared', 'Растаможен в РТ'],
   ['engineVolume', 'Объём двигателя'],
   ['bodyTypeId', 'Кузов'],
   ['colorId', 'Цвет'],
   ['gearboxId', 'Коробка передач'],
   ['fuelTypeId', 'Вид топлива'],
   ['driveType', 'Привод'],
-  ['hasTaxiLicense', 'Лицензия на такси'],
-  ['hasTurbo', 'Турбина'],
   ['carNumber', 'Госномер'],
 ];
 
+/**
+ * Электромобилю нечего спрашивать про объём двигателя и турбину — этих
+ * узлов у него нет. Определяем по названию топлива: стабильного кода у
+ * типов топлива на бэке нет, только id и текст, так что матчим по
+ * вхождению «электро» без учёта регистра.
+ */
+const isElectric = computed(() =>
+  /электро/i.test(fuelTypes.value.find((f) => String(f.id) === draft.fuelTypeId)?.name ?? ''),
+);
+
+// Поля скрываются, но значение в черновике без этого осталось бы висеть —
+// после возврата с электро на бензин форма молча подставила бы старое.
+watch(isElectric, (electric) => {
+  if (!electric) return;
+  draft.engineVolume = '';
+  draft.hasTurbo = '';
+});
+
 const missing = computed(() => {
-  const out = REQUIRED.filter(([key]) => !String(draft[key] ?? '').trim()).map(([, label]) => label);
+  const requiredNow = REQUIRED.filter(([key]) => !(isElectric.value && key === 'engineVolume'));
+  const out = requiredNow
+    .filter(([key]) => !String(draft[key] ?? '').trim())
+    .map(([, label]) => label);
 
   if (visiblePhotos.value.length + photos.value.length < 3) out.push('Минимум 3 фотографии');
   if (!draft.priceTiers.some((t) => Number(t.pricePerDay) > 0)) out.push('Цена аренды');
@@ -400,20 +439,6 @@ async function save() {
                 <NativeSelect id="f-cond" v-model="draft.conditionId" :options="reference.conditions" />
               </FormField>
 
-              <FormField label="Растаможен в РТ" required for="f-customs">
-                <NativeSelect id="f-customs" v-model="draft.customsCleared" :options="YES_NO" />
-              </FormField>
-              <FormField label="Объём двигателя" required for="f-vol">
-                <NativeSelect id="f-vol" v-model="draft.engineVolume" :options="reference.engine_volumes" />
-              </FormField>
-
-              <FormField label="Пробег" for="f-mileage">
-                <TextField id="f-mileage" v-model="draft.mileage" inputmode="numeric" suffix="км" />
-              </FormField>
-              <FormField label="Число мест" for="f-seats">
-                <TextField id="f-seats" v-model="draft.countSeat" inputmode="numeric" placeholder="5" />
-              </FormField>
-
               <FormField label="Кузов" required for="f-body">
                 <NativeSelect id="f-body" v-model="draft.bodyTypeId" :options="bodyTypes" />
               </FormField>
@@ -431,11 +456,49 @@ async function save() {
               <FormField label="Привод" required for="f-drive">
                 <NativeSelect id="f-drive" v-model="draft.driveType" :options="reference.drive_types" />
               </FormField>
-              <FormField label="Турбина" required for="f-turbo">
+              <!-- У электромобиля нет объёма двигателя — поле снято, а не просто спрятано -->
+              <FormField v-if="!isElectric" label="Объём двигателя" required for="f-vol">
+                <NativeSelect id="f-vol" v-model="draft.engineVolume" :options="reference.engine_volumes" />
+              </FormField>
+            </div>
+
+            <!--
+              Растаможка, пробег, число мест, турбина, лицензия на такси —
+              ни одно не обязательно. Открытыми по умолчанию превращали
+              форму в 15 полей вместо 11 на этом шаге без всякой причины.
+            -->
+            <button
+              type="button"
+              class="mt-lg flex items-center gap-2 text-small font-semibold text-brand-ink"
+              @click="showOptionalFields = !showOptionalFields"
+            >
+              <span
+                class="flex h-5 w-5 items-center justify-center rounded border-2 transition-colors duration-fast"
+                :class="showOptionalFields ? 'border-brand-ink bg-brand-ink text-white' : 'border-hairline-strong'"
+              >
+                <svg v-if="showOptionalFields" width="11" height="11" viewBox="0 0 12 12" fill="none">
+                  <path d="M2.5 6.2l2.4 2.4L9.5 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
+              Заполнить ещё: растаможка, пробег, число мест{{ isElectric ? '' : ', турбина' }}, лицензия на такси
+            </button>
+
+            <div v-if="showOptionalFields" class="mt-md grid gap-md sm:grid-cols-2">
+              <FormField label="Растаможен в РТ" for="f-customs">
+                <NativeSelect id="f-customs" v-model="draft.customsCleared" :options="YES_NO" />
+              </FormField>
+              <FormField label="Пробег" for="f-mileage">
+                <TextField id="f-mileage" v-model="draft.mileage" inputmode="numeric" suffix="км" />
+              </FormField>
+
+              <FormField label="Число мест" for="f-seats">
+                <TextField id="f-seats" v-model="draft.countSeat" inputmode="numeric" placeholder="5" />
+              </FormField>
+              <FormField v-if="!isElectric" label="Турбина" for="f-turbo">
                 <NativeSelect id="f-turbo" v-model="draft.hasTurbo" :options="YES_NO" />
               </FormField>
 
-              <FormField label="Лицензия на такси" required for="f-lic">
+              <FormField label="Лицензия на такси" for="f-lic">
                 <NativeSelect id="f-lic" v-model="draft.hasTaxiLicense" :options="YES_NO" />
               </FormField>
             </div>
