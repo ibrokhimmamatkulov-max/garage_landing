@@ -45,6 +45,19 @@ export interface CarTariff {
   depositPerDay?: number;
 }
 
+/**
+ * Тариф аренды под такси (с 25.09.2026 — единственный вид объявления).
+ * Один на объявление, не список — заменяет старую понедельную схему
+ * N рабочих/M выходных (CarTariff остаётся для чтения записей до этой даты).
+ */
+export interface CarTaxiTariff {
+  minMonths: number;
+  offDaysPerMonth: number;
+  pricePerDay: number;
+  /** Считает и бэк, и форма подачи вживую — здесь всегда значение с сервера */
+  monthlyTotal: number;
+}
+
 export type CarListingType = 'taxi' | 'general';
 
 export type CarDriveType = 'fwd' | 'rwd' | 'awd';
@@ -129,6 +142,7 @@ export interface Car {
   dopOptions?: CarDopOption[];
   tariffs?: CarTariff[];
   priceTiers?: CarPriceTier[];
+  taxiTariff?: CarTaxiTariff;
 
   /** Гараж 2.0 — то, что показывает карточка объявления */
   description?: string;

@@ -254,19 +254,39 @@ type Offer = {
 };
 
 const OFFERS: Offer[] = [
-  { id: 1, listing_type: 'general', brand: 'Chevrolet', model: 'Cobalt', year: 2022, seats: 5, gearbox: 1, fuel: 1, body: 'Седан', price: 190, deposit: 1500, minDays: 3 },
+  { id: 1, listing_type: 'taxi', brand: 'Chevrolet', model: 'Cobalt', year: 2022, seats: 5, gearbox: 1, fuel: 1, body: 'Седан', price: 190, deposit: 1500, minDays: 3 },
+  // general — проверка обратной совместимости со старыми записями (до 25.09.2026)
   { id: 2, listing_type: 'general', brand: 'Toyota', model: 'Camry', year: 2021, seats: 5, gearbox: 1, fuel: 3, body: 'Седан', price: 340, deposit: 3000, minDays: 2 },
-  { id: 3, listing_type: 'general', brand: 'Hyundai', model: 'Tucson', year: 2023, seats: 5, gearbox: 1, fuel: 2, body: 'Кроссовер', price: 520, deposit: 0, minDays: 3 },
+  { id: 3, listing_type: 'taxi', brand: 'Hyundai', model: 'Tucson', year: 2023, seats: 5, gearbox: 1, fuel: 2, body: 'Кроссовер', price: 520, deposit: 0, minDays: 3 },
   { id: 4, listing_type: 'taxi', brand: 'Chevrolet', model: 'Nexia', year: 2020, seats: 5, gearbox: 2, fuel: 5, body: 'Седан', price: 150, deposit: null, minDays: 7 },
-  { id: 5, listing_type: 'general', brand: 'Kia', model: 'Sportage', year: 2022, seats: 5, gearbox: 1, fuel: 1, body: 'Кроссовер', price: 430, deposit: 2500, minDays: 2 },
-  { id: 6, listing_type: 'general', brand: 'Changan', model: 'Alsvin', year: 2022, seats: 5, gearbox: 2, fuel: 1, body: 'Седан', price: 200, deposit: 1500, minDays: 5 },
-  { id: 7, listing_type: 'general', brand: 'Geely', model: 'Emgrand', year: 2021, seats: 5, gearbox: 1, fuel: 1, body: 'Седан', price: 180, deposit: 1200, minDays: 3 },
+  { id: 5, listing_type: 'taxi', brand: 'Kia', model: 'Sportage', year: 2022, seats: 5, gearbox: 1, fuel: 1, body: 'Кроссовер', price: 430, deposit: 2500, minDays: 2 },
+  { id: 6, listing_type: 'taxi', brand: 'Changan', model: 'Alsvin', year: 2022, seats: 5, gearbox: 2, fuel: 1, body: 'Седан', price: 200, deposit: 1500, minDays: 5 },
+  { id: 7, listing_type: 'taxi', brand: 'Geely', model: 'Emgrand', year: 2021, seats: 5, gearbox: 1, fuel: 1, body: 'Седан', price: 180, deposit: 1200, minDays: 3 },
   { id: 8, listing_type: 'taxi', brand: 'Kia', model: 'Rio', year: 2020, seats: 5, gearbox: 1, fuel: 1, body: 'Седан', price: 165, deposit: null, minDays: 7 },
-  { id: 9, listing_type: 'general', brand: 'Chery', model: 'Tiggo 4', year: 2023, seats: 5, gearbox: 1, fuel: 1, body: 'Кроссовер', price: 250, deposit: 2000, minDays: 2 },
-  { id: 10, listing_type: 'general', brand: 'BYD', model: 'Song Plus', year: 2024, seats: 5, gearbox: 1, fuel: 4, body: 'Кроссовер', price: 610, deposit: 4000, minDays: 3 },
-  { id: 11, listing_type: 'general', brand: 'Nissan', model: 'X-Trail', year: 2019, seats: 7, gearbox: 1, fuel: 1, body: 'Кроссовер', price: 390, deposit: 2200, minDays: 2 },
-  { id: 12, listing_type: 'general', brand: 'Mercedes-Benz', model: 'E 200', year: 2018, seats: 5, gearbox: 1, fuel: 1, body: 'Седан', price: 740, deposit: 6000, minDays: 2 },
+  { id: 9, listing_type: 'taxi', brand: 'Chery', model: 'Tiggo 4', year: 2023, seats: 5, gearbox: 1, fuel: 1, body: 'Кроссовер', price: 250, deposit: 2000, minDays: 2 },
+  { id: 10, listing_type: 'taxi', brand: 'BYD', model: 'Song Plus', year: 2024, seats: 5, gearbox: 1, fuel: 4, body: 'Кроссовер', price: 610, deposit: 4000, minDays: 3 },
+  { id: 11, listing_type: 'taxi', brand: 'Nissan', model: 'X-Trail', year: 2019, seats: 7, gearbox: 1, fuel: 1, body: 'Кроссовер', price: 390, deposit: 2200, minDays: 2 },
+  { id: 12, listing_type: 'taxi', brand: 'Mercedes-Benz', model: 'E 200', year: 2018, seats: 5, gearbox: 1, fuel: 1, body: 'Седан', price: 740, deposit: 6000, minDays: 2 },
 ];
+
+/**
+ * Тариф под такси (с 25.09.2026) — один на объявление. Срок и выходные
+ * циклически меняются по id, чтобы на витрине было видно разные варианты,
+ * а не одно и то же значение везде.
+ */
+function taxiTariff(o: Offer) {
+  if (o.listing_type !== 'taxi') return null;
+
+  const months = [3, 4, 6][o.id % 3];
+  const offDays = [0, 2, 3, 4][o.id % 4];
+
+  return {
+    min_months: months,
+    off_days_per_month: offDays,
+    price_per_day: o.price,
+    monthly_total: Math.round(o.price * (30 - offDays)),
+  };
+}
 
 function serialize(o: Offer) {
   return {
@@ -286,10 +306,10 @@ function serialize(o: Offer) {
     max_rent_days: null,
     deposit: o.deposit,
     price_tiers: priceTiers(o),
-    tariffs:
-      o.listing_type === 'taxi'
-        ? [{ id: 1, duration_days: 7, price: o.price, free_weekend_day: o.id % 2 === 0 ? 1 : 3 }]
-        : [],
+    taxi_tariff: taxiTariff(o),
+    // Старая понедельная схема — оставлена только как признак «до 25.09.2026»,
+    // сама карточка сейчас читает taxi_tariff.
+    tariffs: [],
     // Два кадра на объявление: экстерьер и интерьер. Нужны разными, чтобы
     // переключение фото в карточке было видно глазом при проверке.
     photos: [photoExterior((o.id * 47) % 360), photoInterior((o.id * 47) % 360)],

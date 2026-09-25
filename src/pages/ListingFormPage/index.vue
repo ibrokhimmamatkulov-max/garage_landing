@@ -8,7 +8,6 @@ import FormField from '@/shared/ui/FormField/index.vue';
 import NativeSelect from '@/shared/ui/NativeSelect/index.vue';
 import TextField from '@/shared/ui/TextField/index.vue';
 import DocumentCheck from '@/features/create-listing/ui/DocumentCheck/index.vue';
-import PriceTiers from '@/features/create-listing/ui/PriceTiers/index.vue';
 import PhotoUploader from '@/features/create-listing/ui/PhotoUploader/index.vue';
 import AuthModal from '@/features/auth-otp/ui/AuthModal/index.vue';
 import {
@@ -256,7 +255,7 @@ const missing = computed(() => {
     .map(([, label]) => label);
 
   if (visiblePhotos.value.length + photos.value.length < 3) out.push('Минимум 3 фотографии');
-  if (!draft.priceTiers.some((t) => Number(t.pricePerDay) > 0)) out.push('Цена аренды');
+  if (!(Number(draft.tariffPricePerDay) > 0)) out.push('Цена за сутки');
 
   return out;
 });
@@ -264,8 +263,21 @@ const missing = computed(() => {
 const canSubmit = computed(() => missing.value.length === 0);
 
 const minPrice = computed(() => {
-  const prices = draft.priceTiers.map((t) => Number(t.pricePerDay)).filter((n) => n > 0);
-  return prices.length ? Math.min(...prices) : null;
+  const price = Number(draft.tariffPricePerDay);
+  return price > 0 ? price : null;
+});
+
+/**
+ * «Сколько выходит в месяц» — владелец должен увидеть это сразу, не
+ * дожидаясь сохранения. Условный месяц 30 дней: та же цифра, что и на
+ * бэке (TaxiTariff::getMonthlyTotalAttribute), чтобы после сохранения
+ * число на экране не поменялось.
+ */
+const monthlyTotal = computed(() => {
+  const price = Number(draft.tariffPricePerDay);
+  const offDays = Number(draft.tariffOffDaysPerMonth);
+  if (!(price > 0)) return null;
+  return Math.round(price * (30 - offDays));
 });
 
 /**
@@ -559,18 +571,54 @@ async function save() {
 
             <div class="mt-lg flex flex-col gap-lg">
               <div>
-                <h3 class="mb-sm text-small font-bold text-ink">Цена по сроку аренды</h3>
-                <PriceTiers v-model="draft.priceTiers" :min-rent-days="Number(draft.minRentDays) || 1" />
+                <h3 class="mb-sm text-small font-bold text-ink">Тариф аренды</h3>
+                <!--
+                  Один тариф, не список: у объявления он единственный,
+                  выбирать арендатору нечего. Три фиксированных варианта
+                  на каждое поле — не свободный ввод, чтобы владельцы не
+                  разъезжались по случайным числам, которые потом не с чем
+                  сравнить.
+                -->
+                <div class="grid gap-md sm:grid-cols-3">
+                  <FormField label="Минимальный срок" required for="f-months">
+                    <NativeSelect
+                      id="f-months"
+                      v-model="draft.tariffMinMonths"
+                      :options="[
+                        { id: '3', name: '3 месяца' },
+                        { id: '4', name: '4 месяца' },
+                        { id: '6', name: '6 месяцев' },
+                      ]"
+                    />
+                  </FormField>
+                  <FormField label="Выходных в месяц" required for="f-offdays">
+                    <NativeSelect
+                      id="f-offdays"
+                      v-model="draft.tariffOffDaysPerMonth"
+                      :options="[
+                        { id: '0', name: 'Без выходных' },
+                        { id: '2', name: '2 дня' },
+                        { id: '3', name: '3 дня' },
+                        { id: '4', name: '4 дня' },
+                      ]"
+                    />
+                  </FormField>
+                  <FormField label="Цена за сутки" required for="f-tprice">
+                    <TextField id="f-tprice" v-model="draft.tariffPricePerDay" inputmode="numeric" suffix="с." />
+                  </FormField>
+                </div>
+
+                <!-- Расчёт сразу, без сохранения — то, ради чего вообще эти три поля -->
+                <p
+                  v-if="monthlyTotal !== null"
+                  class="tnum mt-md rounded-radius-md bg-brand-tint px-3.5 py-2.5 text-small font-semibold text-brand-deep"
+                >
+                  Выходит {{ monthlyTotal }} сомони в месяц
+                  ({{ 30 - Number(draft.tariffOffDaysPerMonth) }} дн. × {{ draft.tariffPricePerDay }} с.)
+                </p>
               </div>
 
               <div class="grid gap-md sm:grid-cols-2">
-                <FormField label="Минимальный срок" for="f-min" hint="Суток">
-                  <TextField id="f-min" v-model="draft.minRentDays" inputmode="numeric" suffix="сут." />
-                </FormField>
-                <FormField label="Максимальный срок" for="f-max" hint="Можно не указывать">
-                  <TextField id="f-max" v-model="draft.maxRentDays" inputmode="numeric" suffix="сут." />
-                </FormField>
-
                 <FormField label="Депозит" for="f-dep" hint="0 — без депозита">
                   <TextField id="f-dep" v-model="draft.depositAmount" inputmode="numeric" suffix="с." />
                 </FormField>
@@ -625,11 +673,12 @@ async function save() {
               </div>
 
               <div>
+                <!-- «Работа в такси» убрана: с 25.09.2026 это и есть смысл любого
+                     объявления на платформе, спрашивать об этом отдельно нечего -->
                 <h3 class="mb-sm text-small font-bold text-ink">Что разрешено</h3>
                 <div class="grid gap-2 sm:grid-cols-2">
                   <label
                     v-for="rule in [
-                      { key: 'allowTaxi', label: 'Работа в такси' },
                       { key: 'allowIntercity', label: 'Выезд за пределы города' },
                       { key: 'allowAbroad', label: 'Выезд за пределы страны' },
                       { key: 'allowSmoking', label: 'Курение в салоне' },

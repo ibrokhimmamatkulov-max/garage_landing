@@ -107,6 +107,19 @@ const tiers = computed(() => {
   const c = props.car;
 
   if (isTaxi.value) {
+    // Новый тариф — всегда один, поэтому один элемент массива: ниже это
+    // само даёт «Стоимость» вместо таблицы «Цена от», что и требуется.
+    if (c.taxiTariff) {
+      return [
+        {
+          key: 'taxi-tariff',
+          range: `от ${c.taxiTariff.minMonths} мес.`,
+          price: c.taxiTariff.pricePerDay,
+        },
+      ];
+    }
+
+    // Записи до 25.09.2026 — старая понедельная схема N/M
     return (c.tariffs ?? []).map((t) => ({
       key: `t${t.id}`,
       range: `${t.durationDays} / ${t.freeWeekendDay}`,
@@ -150,15 +163,21 @@ const rentalTerms = computed(() => {
     if (value) rows.push([label, value]);
   };
 
-  if (isTaxi.value) {
-    // Таксопарковая схема в принятой записи «7 / 1»: столько суток работы,
-    // столько выходных. При одном тарифе таблица ступеней не выводится,
-    // и схема иначе не попала бы на страницу вообще.
+  if (isTaxi.value && c.taxiTariff) {
+    push('Минимальный срок', `${c.taxiTariff.minMonths} мес.`);
+    push(
+      'Выходных в месяц',
+      c.taxiTariff.offDaysPerMonth > 0 ? `${c.taxiTariff.offDaysPerMonth}` : 'Без выходных',
+    );
+    push('Выходит в месяц', `${num(c.taxiTariff.monthlyTotal)} ${c.currency}`);
+  } else if (isTaxi.value) {
+    // Записи до 25.09.2026 — старая понедельная схема «7 / 1»: столько
+    // суток работы, столько выходных.
     push('Рабочих / выходных', `${c.workDays} / ${c.weekendDays}`);
+  } else {
+    push('Минимальный срок', `${c.minRentDays} сут.`);
+    push('Максимальный срок', c.maxRentDays ? `${c.maxRentDays} сут.` : null);
   }
-
-  push('Минимальный срок', `${c.minRentDays} сут.`);
-  push('Максимальный срок', c.maxRentDays ? `${c.maxRentDays} сут.` : null);
 
   if (t) {
     push(
@@ -208,7 +227,8 @@ const permissions = computed(() => {
   if (!t) return [];
 
   return [
-    { text: 'Работа в такси', allowed: t.allowTaxi },
+    // «Работа в такси» убрана: с 25.09.2026 это правда о любом объявлении,
+    // строка всегда была бы зелёной и не несла бы информации.
     { text: 'Междугородние поездки', allowed: t.allowIntercity },
     { text: 'Выезд за границу', allowed: t.allowAbroad },
     { text: 'Курение в салоне', allowed: t.allowSmoking },
@@ -468,6 +488,9 @@ onUnmounted(() => observer?.disconnect());
             <p class="tnum mt-1 text-display-sm font-extrabold leading-none text-ink">
               {{ num(car.pricePerDay) }}
               <span class="text-title font-bold text-ink-muted">{{ car.currency }}/сутки</span>
+            </p>
+            <p v-if="car.taxiTariff" class="tnum mt-1.5 text-small font-semibold text-brand-deep">
+              ≈ {{ num(car.taxiTariff.monthlyTotal) }} {{ car.currency }} в месяц
             </p>
 
             <!-- Ступени цены: то, что владелец задал при подаче -->

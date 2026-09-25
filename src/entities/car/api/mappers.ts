@@ -55,6 +55,13 @@ export interface ApiCarData {
     deposit?: number;
     deposit_per_day?: number;
   }>;
+  // Тариф аренды под такси (с 25.09.2026) — заменяет tariffs у новых объявлений
+  taxi_tariff?: {
+    min_months: number;
+    off_days_per_month: number;
+    price_per_day: number;
+    monthly_total: number;
+  } | null;
   performer_id?: number | null;
 
   // Гараж 2.0 — детальная карточка
@@ -206,6 +213,16 @@ export function mapCar(apiData: ApiCarData): Car {
       maxDays: t.max_days !== null && t.max_days !== undefined ? Number(t.max_days) : null,
       pricePerDay: Number(t.price_per_day),
     })),
+    // Тариф под такси с 25.09.2026 — заменяет tariffs у новых объявлений,
+    // старая связь остаётся ниже для записей до этой даты.
+    taxiTariff: apiData.taxi_tariff
+      ? {
+          minMonths: apiData.taxi_tariff.min_months,
+          offDaysPerMonth: apiData.taxi_tariff.off_days_per_month,
+          pricePerDay: Number(apiData.taxi_tariff.price_per_day),
+          monthlyTotal: Number(apiData.taxi_tariff.monthly_total),
+        }
+      : undefined,
     tariffs: apiData.tariffs?.map((t) => ({
       id: t.id,
       durationDays: t.duration_days,

@@ -43,12 +43,13 @@ export interface ApiOwnerListing {
   has_turbo?: boolean;
   vin_verified?: boolean;
 
-  price_tiers?: Array<{
-    id?: number;
-    min_days: number;
-    max_days: number | null;
+  // Тариф аренды под такси (с 25.09.2026 — единственный вид объявления)
+  tariff?: {
+    min_months: number;
+    off_days_per_month: number;
     price_per_day: number;
-  }>;
+    monthly_total?: number;
+  } | null;
 
   terms?: {
     deposit_amount?: number | null;
@@ -104,16 +105,9 @@ export function listingToDraft(api: ApiOwnerListing): ListingDraft {
     carNumber: str(api.car_number),
     countSeat: str(api.count_seat),
 
-    priceTiers: api.price_tiers?.length
-      ? api.price_tiers.map((p) => ({
-          minDays: str(p.min_days),
-          maxDays: p.max_days === null || p.max_days === undefined ? null : str(p.max_days),
-          pricePerDay: str(p.price_per_day),
-        }))
-      : base.priceTiers,
-
-    minRentDays: str(api.min_rent_days) || base.minRentDays,
-    maxRentDays: str(api.max_rent_days),
+    tariffMinMonths: api.tariff ? str(api.tariff.min_months) : base.tariffMinMonths,
+    tariffOffDaysPerMonth: api.tariff ? str(api.tariff.off_days_per_month) : base.tariffOffDaysPerMonth,
+    tariffPricePerDay: api.tariff ? str(api.tariff.price_per_day) : '',
 
     depositAmount: t?.deposit_amount ? str(t.deposit_amount) : '',
     depositReturnPolicy: t?.deposit_return_policy || base.depositReturnPolicy,
@@ -171,17 +165,13 @@ export function draftToPayload(draft: ListingDraft): Record<string, unknown> {
 
     description: draft.description.trim() || null,
     address: draft.address.trim() || null,
-    min_rent_days: numOrNull(draft.minRentDays),
-    max_rent_days: numOrNull(draft.maxRentDays),
 
-    // Пустые ступени отбрасываем: владелец мог добавить строку и не заполнить
-    price_tiers: draft.priceTiers
-      .filter((t) => Number(t.pricePerDay) > 0)
-      .map((t) => ({
-        min_days: Number(t.minDays),
-        max_days: t.maxDays === null || t.maxDays === '' ? null : Number(t.maxDays),
-        price_per_day: Number(t.pricePerDay),
-      })),
+    // Тариф аренды под такси — один на объявление, не список.
+    tariff: {
+      min_months: Number(draft.tariffMinMonths),
+      off_days_per_month: Number(draft.tariffOffDaysPerMonth),
+      price_per_day: Number(draft.tariffPricePerDay),
+    },
 
     terms: {
       deposit_amount: numOrNull(draft.depositAmount) ?? 0,
@@ -192,7 +182,9 @@ export function draftToPayload(draft: ListingDraft): Record<string, unknown> {
       min_driver_age: numOrNull(draft.minDriverAge),
       min_driver_experience: numOrNull(draft.minDriverExperience),
       documents_pledge: draft.documentsPledge,
-      allow_taxi: draft.allowTaxi,
+      // Не из формы: с 25.09.2026 любое объявление на платформе — под такси,
+      // спрашивать об этом отдельным чекбоксом уже нечего.
+      allow_taxi: true,
       allow_intercity: draft.allowIntercity,
       allow_abroad: draft.allowAbroad,
       allow_smoking: draft.allowSmoking,

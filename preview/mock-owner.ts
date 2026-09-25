@@ -309,7 +309,8 @@ function listingDetail(l: Listing) {
     description:
       `${l.brand} ${l.model} ${l.year} года. Обслуживается у официального дилера, ` +
       'салон чистый, кондиционер заправлен.',
-    listing_type: 'general',
+    // Единственный вид объявления с 25.09.2026
+    listing_type: 'taxi',
     moderation_status: l.moderation_status,
     rejection_reason: l.rejection_reason,
     views_count: l.views_count,
@@ -343,6 +344,13 @@ function listingDetail(l: Listing) {
     vin_verified: l.vin_verified,
 
     min_price: l.min_price,
+    // Тариф под такси — один на объявление, не список
+    tariff: {
+      min_months: 3,
+      off_days_per_month: 2,
+      price_per_day: l.min_price,
+      monthly_total: Math.round(l.min_price * (30 - 2)),
+    },
     price_tiers: [
       { id: l.id * 10, min_days: l.min_rent_days, max_days: 7, price_per_day: l.min_price },
       { id: l.id * 10 + 1, min_days: 8, max_days: null, price_per_day: Math.round(l.min_price * 0.9) },

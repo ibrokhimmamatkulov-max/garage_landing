@@ -1,5 +1,3 @@
-import type { Tier } from '../ui/PriceTiers/index.vue';
-
 export interface ListingDraft {
   // Автомобиль
   cityId: string;
@@ -20,10 +18,12 @@ export interface ListingDraft {
   carNumber: string;
   countSeat: string;
 
+  // Тариф аренды под такси (с 25.09.2026 — единственный вид объявления)
+  tariffMinMonths: string;
+  tariffOffDaysPerMonth: string;
+  tariffPricePerDay: string;
+
   // Условия аренды
-  priceTiers: Tier[];
-  minRentDays: string;
-  maxRentDays: string;
   depositAmount: string;
   depositReturnPolicy: string;
   mileageLimitPerDay: string;
@@ -66,9 +66,11 @@ export function emptyDraft(): ListingDraft {
     carNumber: '',
     countSeat: '',
 
-    priceTiers: [{ minDays: '1', maxDays: null, pricePerDay: '' }],
-    minRentDays: '1',
-    maxRentDays: '',
+    // 3 месяца и 0 выходных — самый частый выбор, меньше кликов для типового случая
+    tariffMinMonths: '3',
+    tariffOffDaysPerMonth: '0',
+    tariffPricePerDay: '',
+
     depositAmount: '',
     depositReturnPolicy: 'on_return',
     mileageLimitPerDay: '',

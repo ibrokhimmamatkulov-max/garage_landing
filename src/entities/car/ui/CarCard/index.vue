@@ -26,9 +26,15 @@ const hasManyImages = computed(() => props.car.images.length > 1);
 
 const isTaxiListing = computed(() => props.car.listingType === 'taxi');
 
-/** Строка под ценой: у обычной аренды — срок и депозит, у такси — старая схема N/M */
+/**
+ * Строка под ценой: у обычной аренды — срок и депозит, у такси — срок
+ * аренды и выходные в месяц. car.tariffs — старая понедельная схема N/M,
+ * читаем её только если нет нового тарифа (записи до 25.09.2026).
+ */
 const priceNote = computed(() => {
   if (isTaxiListing.value) {
+    const t = props.car.taxiTariff;
+    if (t) return `от ${t.minMonths} мес. · ${t.offDaysPerMonth} вых./мес.`;
     return `схема ${props.car.workDays} / ${props.car.weekendDays}`;
   }
 

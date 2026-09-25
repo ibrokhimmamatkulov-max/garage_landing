@@ -77,6 +77,11 @@ const tariff = computed(() => {
   const car = props.car;
 
   if (car.listingType === 'taxi') {
+    const t = car.taxiTariff;
+    if (t) {
+      return `от ${t.minMonths} мес. · ${t.pricePerDay} ${car.currency}/сутки · ≈${Math.round(t.monthlyTotal)} ${car.currency}/мес.`;
+    }
+    // Записи до 25.09.2026 — старая понедельная схема
     return `${car.workDays} / ${car.weekendDays} · ${car.pricePerDay} ${car.currency} в сутки`;
   }
 
