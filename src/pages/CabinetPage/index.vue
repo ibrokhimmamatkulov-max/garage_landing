@@ -76,6 +76,24 @@ async function togglePublish(id: number, status: string) {
   if (status === 'published') await ownerApi.pauseListing(id);
   else if (status === 'paused') await ownerApi.publishListing(id);
   else if (status === 'rejected') await ownerApi.resubmitListing(id);
+  // Кнопка та же, что и для «Опубликовать» после паузы: содержимое не
+  // менялось, пока объявление лежало в архиве, повторной проверки не нужно.
+  else if (status === 'archived') await ownerApi.publishListing(id);
+  await store.loadListings();
+}
+
+/**
+ * Отдельная кнопка, не вариант togglePublish: «в архив» доступно с любого
+ * статуса кроме самого archived (там уже показывает «Опубликовать» через
+ * togglePublish), а «снять/опубликовать/отправить снова» — только с трёх
+ * конкретных статусов. Совмещать в одну функцию по имени статуса было бы
+ * запутаннее, чем два явных действия.
+ */
+async function archiveListing(id: number) {
+  if (!window.confirm('Отложить объявление в архив? Его можно будет опубликовать обратно в любой момент.')) {
+    return;
+  }
+  await ownerApi.archiveListing(id);
   await store.loadListings();
 }
 
@@ -179,6 +197,7 @@ async function signOut() {
               { id: 'pending', label: 'На проверке', n: store.counts.pending },
               { id: 'rejected', label: 'Отклонены', n: store.counts.rejected },
               { id: 'paused', label: 'Сняты', n: store.counts.paused },
+              { id: 'archived', label: 'В архиве', n: store.counts.archived },
             ]"
             :key="f.id || 'all'"
             class="shrink-0 rounded-full border px-3.5 py-2 text-small font-semibold transition-colors duration-fast"
@@ -257,6 +276,13 @@ async function signOut() {
                   >
                     Изменить
                   </router-link>
+                  <button
+                    v-if="l.status !== 'archived'"
+                    class="rounded-radius-md px-3.5 py-2 text-caption font-semibold text-ink-soft transition-colors duration-fast hover:bg-surface-sunken hover:text-ink"
+                    @click="archiveListing(l.id)"
+                  >
+                    В архив
+                  </button>
                 </div>
               </div>
             </div>

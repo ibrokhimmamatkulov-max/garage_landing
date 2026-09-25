@@ -44,6 +44,7 @@ export const useOwnerStore = defineStore('owner', () => {
     pending: listings.value.filter((l) => l.status === 'pending').length,
     rejected: listings.value.filter((l) => l.status === 'rejected').length,
     paused: listings.value.filter((l) => l.status === 'paused').length,
+    archived: listings.value.filter((l) => l.status === 'archived').length,
   }));
 
   function setSession(newToken: string, newOwner: Owner) {

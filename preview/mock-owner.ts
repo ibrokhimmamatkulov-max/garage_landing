@@ -143,6 +143,29 @@ export const LISTINGS: Listing[] = [
     engine_volume: 1.6,
     submitted_at: '2026-08-21T14:02:00+05:00',
   },
+  {
+    id: 105,
+    title: null,
+    brand: 'Geely',
+    model: 'Emgrand',
+    year: 2021,
+    car_number: '01 IJ 345 TJ',
+    // На этой карточке проверяется цикл «в архив → опубликовать обратно»
+    moderation_status: 'archived',
+    rejection_reason: null,
+    vin_verified: true,
+    views_count: 340,
+    applications_count: 1,
+    min_price: 180,
+    min_rent_days: 3,
+    city: 'Худжанд',
+    gearbox: 'Автомат',
+    fuel: 'Бензин',
+    body: 'Седан',
+    mileage: 60000,
+    engine_volume: 1.5,
+    submitted_at: '2026-07-30T10:15:00+05:00',
+  },
 ];
 
 export const APPLICATION_STATUSES = [
@@ -427,9 +450,10 @@ export function ownerRoutes(
 
   if (pathname === '/api/owner/listings') {
     const status = url.searchParams.get('status');
-    const rows = status
-      ? LISTINGS.filter((l) => l.moderation_status === status)
-      : LISTINGS.filter((l) => l.moderation_status !== 'archived');
+    // «Все» без фильтра — правда все, включая архив: у него теперь есть
+    // выход (публикация обратно), прятать незачем — то же решение, что
+    // и в боевом OwnerListingController::index().
+    const rows = status ? LISTINGS.filter((l) => l.moderation_status === status) : LISTINGS;
 
     return ok({
       data: rows,
@@ -437,7 +461,30 @@ export function ownerRoutes(
     });
   }
 
+  // Смена статуса: снять/опубликовать/отправить снова/в архив. Мутируем
+  // объект прямо в LISTINGS — тот же приём, что и у профиля.
+  const statusAction = pathname.match(/^\/api\/owner\/listings\/(\d+)\/(pause|publish|resubmit)$/);
+  if (statusAction && method === 'POST') {
+    const listing = LISTINGS.find((l) => l.id === Number(statusAction[1]));
+    if (!listing) return fail('Объявление не найдено.', 404);
+
+    const next: Record<string, Listing['moderation_status']> = {
+      pause: 'paused',
+      publish: 'published',
+      resubmit: 'pending',
+    };
+    listing.moderation_status = next[statusAction[2]];
+    return ok(listingDetail(listing));
+  }
+
   const detailMatch = pathname.match(/^\/api\/owner\/listings\/(\d+)$/);
+  if (detailMatch && method === 'DELETE') {
+    // «Удаление» — это архивирование, реального удаления в этой модели нет.
+    const listing = LISTINGS.find((l) => l.id === Number(detailMatch[1]));
+    if (!listing) return fail('Объявление не найдено.', 404);
+    listing.moderation_status = 'archived';
+    return ok(null);
+  }
   if (detailMatch) {
     const listing = LISTINGS.find((l) => l.id === Number(detailMatch[1]));
     return listing ? ok(listingDetail(listing)) : fail('Объявление не найдено.', 404);

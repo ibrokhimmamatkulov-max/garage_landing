@@ -179,6 +179,11 @@ export async function resubmitListing(id: number) {
   await apiInstance.post(`/owner/listings/${id}/resubmit`);
 }
 
+/** «Отложить в архив». На бэке это тот же DELETE, что и было — реального удаления нет */
+export async function archiveListing(id: number) {
+  await apiInstance.delete(`/owner/listings/${id}`);
+}
+
 /* ------------------------------------------------------------------ */
 /* Профиль                                                             */
 /* ------------------------------------------------------------------ */
