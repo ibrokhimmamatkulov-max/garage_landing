@@ -65,9 +65,12 @@ function handleTouchEnd(event: TouchEvent) {
     @mouseleave="currentImageIndex = 0"
   >
     <div
-      class="relative aspect-[4/3] shrink-0 overflow-hidden bg-surface-sunken"
+      class="relative aspect-[4/3] shrink-0 cursor-pointer overflow-hidden bg-surface-sunken"
+      role="link"
+      :aria-label="`Подробнее: ${car.brand} ${car.model}`"
       @touchstart.passive="handleTouchStart"
       @touchend.passive="handleTouchEnd"
+      @click="$emit('details', car)"
     >
       <img
         :src="currentImage"
