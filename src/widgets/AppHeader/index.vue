@@ -8,10 +8,6 @@ defineOptions({
   name: 'AppHeader',
 });
 
-defineEmits<{
-  openFilters: [];
-}>();
-
 const locationStore = useLocationStore();
 const carStore = useCarStore();
 
@@ -153,14 +149,6 @@ watch(
         </div>
 
         <span class="hidden h-4 w-px bg-hairline sm:block" aria-hidden="true" />
-
-        <button
-          class="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-small font-semibold text-ink transition-colors duration-fast hover:bg-surface-sunken sm:px-3"
-          @click="$emit('openFilters')"
-        >
-          <AppIcon name="filter" :size="15" class="shrink-0 text-ink-soft" />
-          <span class="hidden sm:inline">Фильтры</span>
-        </button>
 
         <!-- Вход в кабинет арендодателя: второй канал, который делает витрину двусторонней -->
         <a

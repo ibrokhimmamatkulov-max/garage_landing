@@ -8,7 +8,6 @@ import HeroBanner from '@/widgets/HeroBanner/index.vue';
 import CarCatalog from '@/widgets/CarCatalog/index.vue';
 import PromoBanner from '@/widgets/PromoBanner/index.vue';
 import AppFooter from '@/widgets/AppFooter/index.vue';
-import { FilterModal } from '@/features/filter-cars';
 import { ApplicationModal, ApplicationSuccessModal } from '@/features/submit-application';
 
 defineOptions({
@@ -19,7 +18,6 @@ const router = useRouter();
 const carStore = useCarStore();
 const locationStore = useLocationStore();
 
-const isFilterOpen = ref(false);
 const isApplicationOpen = ref(false);
 const isSuccessOpen = ref(false);
 const selectedCar = ref<Car | null>(null);
@@ -35,11 +33,6 @@ onMounted(async () => {
     carStore.fetchCars();
   }
 });
-
-function handleOpenFilters() {
-  isFilterOpen.value = true;
-}
-
 
 function handleLoadMore() {
   carStore.loadNextPage();
@@ -77,8 +70,8 @@ function handleResetFilters() {
 
 <template>
   <div class="flex min-h-screen flex-col bg-surface-canvas">
-    <AppHeader @open-filters="handleOpenFilters" />
-    <HeroBanner @open-filters="handleOpenFilters" />
+    <AppHeader />
+    <HeroBanner />
 
     <CarCatalog
       :cars="carStore.cars"
@@ -97,8 +90,6 @@ function handleResetFilters() {
     <AppFooter />
 
     <!-- Modals -->
-    <FilterModal v-if="isFilterOpen" @close="isFilterOpen = false" />
-
     <ApplicationModal
       v-if="isApplicationOpen && selectedCar"
       :car="selectedCar"

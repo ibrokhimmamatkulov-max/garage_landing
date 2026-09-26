@@ -6,7 +6,6 @@ import { useCarStore } from '@/entities/car';
 import AppHeader from '@/widgets/AppHeader/index.vue';
 import CarDetails from '@/widgets/CarDetails/index.vue';
 import AppFooter from '@/widgets/AppFooter/index.vue';
-import { FilterModal } from '@/features/filter-cars';
 import { ApplicationModal, ApplicationSuccessModal } from '@/features/submit-application';
 
 defineOptions({
@@ -17,7 +16,6 @@ const route = useRoute();
 const router = useRouter();
 const carStore = useCarStore();
 
-const isFilterOpen = ref(false);
 const isApplicationOpen = ref(false);
 const isSuccessOpen = ref(false);
 
@@ -42,7 +40,7 @@ function handleBack() {
 
 <template>
   <div class="flex min-h-screen flex-col bg-surface-canvas">
-    <AppHeader @open-filters="isFilterOpen = true" />
+    <AppHeader />
 
     <div
       v-if="carStore.isLoading"
@@ -70,8 +68,6 @@ function handleBack() {
     <div class="h-[4.75rem] bg-surface-paper lg:hidden" aria-hidden="true" />
 
     <!-- Modals -->
-    <FilterModal v-if="isFilterOpen" @close="isFilterOpen = false" />
-
     <ApplicationModal
       v-if="isApplicationOpen && carStore.currentCar"
       :car="carStore.currentCar"
