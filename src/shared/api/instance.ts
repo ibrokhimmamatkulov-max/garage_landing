@@ -46,6 +46,17 @@ apiInstance.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Инстанс задаёт Content-Type: application/json по умолчанию. Axios 1.x
+  // считает явный application/json осознанным выбором и при таком
+  // заголовке сериализует даже настоящий FormData в JSON вместо
+  // multipart — файл при этом теряется целиком (тело превращается в
+  // "photos[]":{} на пару байт). Для загрузки файлов заголовок нужно
+  // снять, чтобы браузер сам подставил multipart/form-data с boundary.
+  if (config.data instanceof FormData) {
+    config.headers.delete('Content-Type');
+  }
+
   return config;
 });
 

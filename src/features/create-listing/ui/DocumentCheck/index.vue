@@ -126,8 +126,8 @@ function remove(index: number) {
             <span class="text-caption font-semibold">
               {{ modelValue.length === 0 ? 'Лицевая' : 'Оборот' }}
             </span>
+            <input type="file" accept="image/*" class="hidden" @change="onPick" />
           </label>
-          <input type="file" accept="image/*" class="hidden" @change="onPick" />
         </div>
 
         <p v-if="error" class="mt-sm text-caption text-state-error">{{ error }}</p>
