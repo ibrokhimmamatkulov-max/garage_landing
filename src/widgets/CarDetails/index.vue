@@ -155,6 +155,12 @@ const FUEL_LABELS: Record<string, string> = {
   owner: 'Топливо включено в стоимость',
 };
 
+const PLEDGE_LABELS: Record<string, string> = {
+  none: 'Не требуется',
+  passport: 'Паспорт',
+  any_id: 'Любой документ',
+};
+
 const rentalTerms = computed(() => {
   const c = props.car;
   const t = terms.value;
@@ -217,7 +223,9 @@ const driverTerms = computed(() => {
   const rows: Array<[string, string]> = [];
   if (t.minDriverAge) rows.push(['Возраст', `от ${t.minDriverAge} лет`]);
   if (t.minDriverExperience) rows.push(['Стаж вождения', `от ${t.minDriverExperience} лет`]);
-  if (t.documentsPledge) rows.push(['Документы в залог', t.documentsPledge]);
+  if (t.documentsPledge) {
+    rows.push(['Документы в залог', PLEDGE_LABELS[t.documentsPledge] ?? t.documentsPledge]);
+  }
   if (t.requireCleanRecord) rows.push(['Нарушения', 'Без серьёзных нарушений ПДД']);
   return rows;
 });
