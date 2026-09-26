@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { apiInstance } from '@/shared/api';
+import { formatPhotoUrl } from '@/shared/lib/photoUrl';
 import AdminLayout from '@/widgets/AdminLayout/index.vue';
 import TextField from '@/shared/ui/TextField/index.vue';
 import NativeSelect from '@/shared/ui/NativeSelect/index.vue';
@@ -121,7 +122,7 @@ const filtered = computed(() => {
               <div class="flex items-center gap-3">
                 <img
                   v-if="r.photos?.[0]"
-                  :src="r.photos[0]"
+                  :src="formatPhotoUrl(r.photos[0])"
                   alt=""
                   class="h-11 w-16 shrink-0 rounded-radius-sm object-cover"
                 />
