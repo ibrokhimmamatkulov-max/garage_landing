@@ -15,8 +15,10 @@ export interface ListingDraft {
   driveType: string;
   hasTaxiLicense: string;
   hasTurbo: string;
+  hasGpsTracker: boolean;
   carNumber: string;
   countSeat: string;
+  vin: string;
 
   // Тариф аренды под такси (с 25.09.2026 — единственный вид объявления)
   tariffMinMonths: string;
@@ -63,8 +65,10 @@ export function emptyDraft(): ListingDraft {
     driveType: '',
     hasTaxiLicense: '',
     hasTurbo: '',
+    hasGpsTracker: false,
     carNumber: '',
     countSeat: '',
+    vin: '',
 
     // 3 месяца и 0 выходных — самый частый выбор, меньше кликов для типового случая
     tariffMinMonths: '3',

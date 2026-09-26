@@ -3,10 +3,12 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ProfileModal, PasswordModal } from '@/features/owner-profile';
 import { useOwnerStore, ownerApi, type Owner } from '@/entities/owner';
+import type { PauseReason } from '@/entities/owner/api';
 import ListingStatusBadge from '@/entities/owner/ui/ListingStatusBadge.vue';
 import AppHeader from '@/widgets/AppHeader/index.vue';
 import AppFooter from '@/widgets/AppFooter/index.vue';
 import NativeSelect from '@/shared/ui/NativeSelect/index.vue';
+import FormField from '@/shared/ui/FormField/index.vue';
 
 defineOptions({
   name: 'CabinetPage',
@@ -72,14 +74,61 @@ function formatPeriod(from: string | null, to: string | null) {
   return `${f.toLocaleDateString('ru-RU', opts)} — ${t.toLocaleDateString('ru-RU', opts)}`;
 }
 
+/**
+ * Снятие с публикации — отдельная ветка: перед вызовом API спрашиваем
+ * причину модалкой (ТЗ, решение от 26.09.2026), остальные переходы статуса
+ * происходят сразу, без диалога.
+ */
 async function togglePublish(id: number, status: string) {
-  if (status === 'published') await ownerApi.pauseListing(id);
-  else if (status === 'paused') await ownerApi.publishListing(id);
+  if (status === 'published') {
+    pausingListingId.value = id;
+    pauseReason.value = 'rented_out';
+    pauseComment.value = '';
+    pauseModalOpen.value = true;
+    return;
+  }
+  if (status === 'paused') await ownerApi.publishListing(id);
   else if (status === 'rejected') await ownerApi.resubmitListing(id);
   // Кнопка та же, что и для «Опубликовать» после паузы: содержимое не
   // менялось, пока объявление лежало в архиве, повторной проверки не нужно.
   else if (status === 'archived') await ownerApi.publishListing(id);
   await store.loadListings();
+}
+
+/* ---------------- причина снятия с публикации ---------------- */
+
+const pauseModalOpen = ref(false);
+const pausingListingId = ref<number | null>(null);
+const pauseReason = ref<PauseReason>('rented_out');
+const pauseComment = ref('');
+const pauseSubmitting = ref(false);
+
+const PAUSE_REASONS: Array<{ id: PauseReason; label: string }> = [
+  { id: 'rented_out', label: 'Сдал в аренду' },
+  { id: 'changed_mind', label: 'Передумал сдавать' },
+  { id: 'other', label: 'Другая причина' },
+];
+
+function closePauseModal() {
+  pauseModalOpen.value = false;
+  pausingListingId.value = null;
+}
+
+async function confirmPause() {
+  if (!pausingListingId.value) return;
+
+  pauseSubmitting.value = true;
+  try {
+    await ownerApi.pauseListing(
+      pausingListingId.value,
+      pauseReason.value,
+      pauseReason.value === 'other' ? pauseComment.value.trim() : undefined,
+    );
+    closePauseModal();
+    await store.loadListings();
+  } finally {
+    pauseSubmitting.value = false;
+  }
 }
 
 /**
@@ -427,5 +476,64 @@ async function signOut() {
       @close="passwordOpen = false"
       @saved="onPasswordSaved"
     />
+
+    <!--
+      Причина снятия с публикации (ТЗ, решение от 26.09.2026) — менеджер
+      видит её в журнале решений объявления, владельцу это не стоит лишнего
+      клика: готовый вариант выбирается сразу, свой текст — только для «другой причины».
+    -->
+    <div
+      v-if="pauseModalOpen"
+      class="fixed inset-0 z-[200] flex items-end justify-center bg-ink/60 backdrop-blur-sm sm:items-center sm:p-lg"
+      @click.self="closePauseModal"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pause-title"
+        class="w-full max-w-[26rem] rounded-t-radius-2xl bg-surface-paper p-lg shadow-modal sm:rounded-radius-2xl sm:p-xl"
+      >
+        <h2 id="pause-title" class="text-title font-bold text-ink">Почему снимаете с публикации?</h2>
+        <p class="mt-1 text-small text-ink-muted">Это поможет нам понять, что чаще всего мешает сдать машину.</p>
+
+        <div class="mt-lg flex flex-col gap-2">
+          <label
+            v-for="r in PAUSE_REASONS"
+            :key="r.id"
+            class="flex cursor-pointer items-center gap-2.5 rounded-radius-md border border-hairline px-3.5 py-2.5 transition-colors duration-fast hover:bg-surface-sunken"
+          >
+            <input v-model="pauseReason" type="radio" :value="r.id" class="h-4 w-4 shrink-0 accent-brand-ink" />
+            <span class="text-small text-ink">{{ r.label }}</span>
+          </label>
+        </div>
+
+        <FormField v-if="pauseReason === 'other'" label="Расскажите подробнее" class="mt-md" for="pause-comment">
+          <textarea
+            id="pause-comment"
+            v-model="pauseComment"
+            rows="3"
+            class="w-full resize-y rounded-radius-md border border-hairline bg-surface-paper px-3.5 py-2.5 text-body text-ink transition-colors duration-fast placeholder:text-ink-ghost focus:border-brand-ink focus:shadow-focus-brand focus:outline-none"
+          />
+        </FormField>
+
+        <div class="mt-lg flex gap-sm">
+          <button
+            type="button"
+            class="flex-1 rounded-radius-md border border-hairline px-4 py-2.5 text-small font-semibold text-ink transition-colors duration-fast hover:bg-surface-sunken"
+            @click="closePauseModal"
+          >
+            Отмена
+          </button>
+          <button
+            type="button"
+            :disabled="pauseSubmitting"
+            class="flex-1 rounded-radius-md bg-brand px-4 py-2.5 text-small font-semibold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:opacity-60"
+            @click="confirmPause"
+          >
+            {{ pauseSubmitting ? 'Снимаем…' : 'Снять с публикации' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

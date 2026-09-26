@@ -106,6 +106,7 @@ export interface CarUnavailablePeriod {
 }
 
 export interface CarOwner {
+  id?: number;
   displayName: string;
   ownerType: string;
 }
@@ -158,6 +159,7 @@ export interface Car {
   driveType?: CarDriveType | null;
   hasTaxiLicense?: boolean;
   hasTurbo?: boolean;
+  hasGpsTracker?: boolean;
   /** Менеджер сверил VIN с техпаспортом. Сами документы не показываются */
   vinVerified?: boolean;
 }

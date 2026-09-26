@@ -167,8 +167,15 @@ export async function updateApplicationStatus(id: number, statusId: number) {
   await apiInstance.patch(`/owner/applications/${id}`, { status_id: statusId });
 }
 
-export async function pauseListing(id: number) {
-  await apiInstance.post(`/owner/listings/${id}/pause`);
+export type PauseReason = 'rented_out' | 'changed_mind' | 'other';
+
+/**
+ * Причина снятия (ТЗ, решение от 26.09.2026) — менеджер видит её в журнале
+ * решений объявления. Оба поля необязательны: старое поведение (снять без
+ * объяснений) остаётся рабочим.
+ */
+export async function pauseListing(id: number, reason?: PauseReason, comment?: string) {
+  await apiInstance.post(`/owner/listings/${id}/pause`, { reason, comment });
 }
 
 export async function publishListing(id: number) {

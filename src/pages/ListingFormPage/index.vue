@@ -57,6 +57,8 @@ const submitting = ref(false);
  * не должна казаться длиннее, чем она есть; кто хочет — раскроет галочкой.
  */
 const showOptionalFields = ref(false);
+/** Лимит пробега и «Что разрешено» — не влияют на решение сдать/снять, спрятаны так же */
+const showAdvancedTerms = ref(false);
 
 /* ---------------- правка ---------------- */
 
@@ -104,8 +106,19 @@ async function loadListing(id: string) {
     // прятать их значило бы выглядеть как потеря данных при открытии правки.
     // '0' у да/нет-полей — тоже осознанный ответ («растаможки нет»), а не
     // пропуск, поэтому проверка на непустую строку, а не строго на '1'.
-    if (draft.customsCleared || draft.mileage || draft.countSeat || draft.hasTurbo || draft.hasTaxiLicense) {
+    if (draft.countSeat || draft.hasTurbo) {
       showOptionalFields.value = true;
+    }
+
+    if (
+      draft.mileageLimitPerDay
+      || draft.overmileagePrice
+      || draft.allowAbroad
+      || draft.allowSmoking
+      || draft.allowPets
+      || !draft.allowIntercity
+    ) {
+      showAdvancedTerms.value = true;
     }
 
     savedPhotos.value = (listing.photos ?? []).map((p) => ({
@@ -210,10 +223,10 @@ watch(
 /* ---------------- готовность ---------------- */
 
 /**
- * Растаможен в РТ, лицензия на такси, турбина — раньше были обязательными
- * без причины: это не то, без чего объявление бессмысленно, а лишняя
- * причина не отправить форму. Теперь необязательны и спрятаны за
- * «Показать ещё поля», как пробег и число мест.
+ * Растаможка, пробег и лицензия на такси — обязательные (решение от
+ * 26.09.2026): для аренды под такси это ровно то, что арендатор спрашивает
+ * первым делом, прятать за «Показать ещё поля» не имеет смысла. Турбина и
+ * число мест остаются необязательными — они не влияют на решение об аренде.
  */
 const REQUIRED: Array<[keyof ListingDraft, string]> = [
   ['cityId', 'Город'],
@@ -228,6 +241,9 @@ const REQUIRED: Array<[keyof ListingDraft, string]> = [
   ['fuelTypeId', 'Вид топлива'],
   ['driveType', 'Привод'],
   ['carNumber', 'Госномер'],
+  ['customsCleared', 'Растаможен в РТ'],
+  ['mileage', 'Пробег'],
+  ['hasTaxiLicense', 'Лицензия на такси'],
 ];
 
 /**
@@ -248,6 +264,27 @@ watch(isElectric, (electric) => {
   draft.hasTurbo = '';
 });
 
+/**
+ * Формат госномера РТ: 01 AB 123 TJ (пробелы необязательны). VIN — 17 латинских
+ * букв и цифр без I/O/Q (их путают с 1/0), как того требует стандарт.
+ * Ошибка показывается в реальном времени под полем, а не только при попытке
+ * отправить форму (решение от 26.09.2026).
+ */
+const CAR_NUMBER_PATTERN = /^\d{2}\s?[A-Z]{2}\s?\d{3}\s?TJ$/i;
+const VIN_PATTERN = /^[A-HJ-NPR-Z0-9]{17}$/i;
+
+const carNumberError = computed(() => {
+  const value = draft.carNumber.trim();
+  if (!value) return null;
+  return CAR_NUMBER_PATTERN.test(value) ? null : 'Формат: 01 AB 123 TJ';
+});
+
+const vinError = computed(() => {
+  const value = draft.vin.trim();
+  if (!value) return null;
+  return VIN_PATTERN.test(value) ? null : 'VIN — 17 символов, латиница и цифры, без I, O, Q';
+});
+
 const missing = computed(() => {
   const requiredNow = REQUIRED.filter(([key]) => !(isElectric.value && key === 'engineVolume'));
   const out = requiredNow
@@ -256,6 +293,8 @@ const missing = computed(() => {
 
   if (visiblePhotos.value.length + photos.value.length < 3) out.push('Минимум 3 фотографии');
   if (!(Number(draft.tariffPricePerDay) > 0)) out.push('Цена за сутки');
+  if (carNumberError.value) out.push('Формат госномера');
+  if (vinError.value) out.push('Формат VIN');
 
   return out;
 });
@@ -427,7 +466,13 @@ async function save() {
               <FormField label="Город" required for="f-city">
                 <NativeSelect id="f-city" v-model="draft.cityId" :options="cities" />
               </FormField>
-              <FormField label="Госномер" required for="f-plate" hint="По нему мы не даём выставить одну машину дважды">
+              <FormField
+                label="Госномер"
+                required
+                for="f-plate"
+                :error="carNumberError"
+                hint="По нему мы не даём выставить одну машину дважды"
+              >
                 <TextField id="f-plate" v-model="draft.carNumber" placeholder="01 AB 123 TJ" />
               </FormField>
 
@@ -472,12 +517,43 @@ async function save() {
               <FormField v-if="!isElectric" label="Объём двигателя" required for="f-vol">
                 <NativeSelect id="f-vol" v-model="draft.engineVolume" :options="reference.engine_volumes" />
               </FormField>
+
+              <FormField label="Растаможен в РТ" required for="f-customs">
+                <NativeSelect id="f-customs" v-model="draft.customsCleared" :options="YES_NO" />
+              </FormField>
+              <FormField label="Пробег" required for="f-mileage">
+                <TextField id="f-mileage" v-model="draft.mileage" inputmode="numeric" suffix="км" />
+              </FormField>
+
+              <FormField label="Лицензия на такси" required for="f-lic">
+                <NativeSelect id="f-lic" v-model="draft.hasTaxiLicense" :options="YES_NO" />
+              </FormField>
+              <FormField
+                label="VIN"
+                for="f-vin"
+                :error="vinError"
+                hint="17 символов из техпаспорта — не обязателен, но ускоряет проверку менеджером"
+              >
+                <TextField
+                  id="f-vin"
+                  :model-value="draft.vin"
+                  placeholder="XTA212140Y1234567"
+                  @update:model-value="(v) => (draft.vin = v.toUpperCase())"
+                />
+              </FormField>
             </div>
 
+            <label
+              class="mt-md flex cursor-pointer items-center gap-2.5 rounded-radius-md border border-hairline px-3.5 py-2.5 transition-colors duration-fast hover:bg-surface-sunken"
+            >
+              <input v-model="draft.hasGpsTracker" type="checkbox" class="h-4 w-4 shrink-0 accent-brand-ink" />
+              <span class="text-small text-ink">Есть GPS-трекер отслеживания</span>
+            </label>
+
             <!--
-              Растаможка, пробег, число мест, турбина, лицензия на такси —
-              ни одно не обязательно. Открытыми по умолчанию превращали
-              форму в 15 полей вместо 11 на этом шаге без всякой причины.
+              Число мест и турбина — не влияют на решение об аренде под такси,
+              поэтому остались за необязательным «Заполнить ещё» (в отличие
+              от растаможки/пробега/лицензии, которые с 26.09.2026 обязательны).
             -->
             <button
               type="button"
@@ -492,26 +568,15 @@ async function save() {
                   <path d="M2.5 6.2l2.4 2.4L9.5 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </span>
-              Заполнить ещё: растаможка, пробег, число мест{{ isElectric ? '' : ', турбина' }}, лицензия на такси
+              Заполнить ещё: число мест{{ isElectric ? '' : ', турбина' }}
             </button>
 
             <div v-if="showOptionalFields" class="mt-md grid gap-md sm:grid-cols-2">
-              <FormField label="Растаможен в РТ" for="f-customs">
-                <NativeSelect id="f-customs" v-model="draft.customsCleared" :options="YES_NO" />
-              </FormField>
-              <FormField label="Пробег" for="f-mileage">
-                <TextField id="f-mileage" v-model="draft.mileage" inputmode="numeric" suffix="км" />
-              </FormField>
-
               <FormField label="Число мест" for="f-seats">
                 <TextField id="f-seats" v-model="draft.countSeat" inputmode="numeric" placeholder="5" />
               </FormField>
               <FormField v-if="!isElectric" label="Турбина" for="f-turbo">
                 <NativeSelect id="f-turbo" v-model="draft.hasTurbo" :options="YES_NO" />
-              </FormField>
-
-              <FormField label="Лицензия на такси" for="f-lic">
-                <NativeSelect id="f-lic" v-model="draft.hasTaxiLicense" :options="YES_NO" />
               </FormField>
             </div>
           </section>
@@ -634,13 +699,6 @@ async function save() {
                   />
                 </FormField>
 
-                <FormField label="Лимит пробега в сутки" for="f-lim" hint="Пусто — без лимита">
-                  <TextField id="f-lim" v-model="draft.mileageLimitPerDay" inputmode="numeric" suffix="км" />
-                </FormField>
-                <FormField label="Цена за км сверх лимита" for="f-over">
-                  <TextField id="f-over" v-model="draft.overmileagePrice" inputmode="numeric" suffix="с." />
-                </FormField>
-
                 <FormField label="Топливо" for="f-fp">
                   <NativeSelect
                     id="f-fp"
@@ -673,27 +731,62 @@ async function save() {
               </div>
 
               <div>
-                <!-- «Работа в такси» убрана: с 25.09.2026 это и есть смысл любого
-                     объявления на платформе, спрашивать об этом отдельно нечего -->
-                <h3 class="mb-sm text-small font-bold text-ink">Что разрешено</h3>
-                <div class="grid gap-2 sm:grid-cols-2">
-                  <label
-                    v-for="rule in [
-                      { key: 'allowIntercity', label: 'Выезд за пределы города' },
-                      { key: 'allowAbroad', label: 'Выезд за пределы страны' },
-                      { key: 'allowSmoking', label: 'Курение в салоне' },
-                      { key: 'allowPets', label: 'Перевозка животных' },
-                    ]"
-                    :key="rule.key"
-                    class="flex cursor-pointer items-center gap-2.5 rounded-radius-md border border-hairline px-3.5 py-2.5 transition-colors duration-fast hover:bg-surface-sunken"
+                <!--
+                  Лимит пробега и «Что разрешено» — необязательные мелочи,
+                  которые не влияют на решение сдать/снять авто (решение от
+                  26.09.2026). Открытыми по умолчанию раздували и без того
+                  длинный раздел условий аренды.
+                -->
+                <button
+                  type="button"
+                  class="flex items-center gap-2 text-small font-semibold text-brand-ink"
+                  @click="showAdvancedTerms = !showAdvancedTerms"
+                >
+                  <span
+                    class="flex h-5 w-5 items-center justify-center rounded border-2 transition-colors duration-fast"
+                    :class="showAdvancedTerms ? 'border-brand-ink bg-brand-ink text-white' : 'border-hairline-strong'"
                   >
-                    <input
-                      v-model="(draft as any)[rule.key]"
-                      type="checkbox"
-                      class="h-4 w-4 shrink-0 accent-brand-ink"
-                    />
-                    <span class="text-small text-ink">{{ rule.label }}</span>
-                  </label>
+                    <svg v-if="showAdvancedTerms" width="11" height="11" viewBox="0 0 12 12" fill="none">
+                      <path d="M2.5 6.2l2.4 2.4L9.5 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </span>
+                  Заполнить ещё: лимит пробега, выезд за город/за границу, курение, животные
+                </button>
+
+                <div v-if="showAdvancedTerms" class="mt-md flex flex-col gap-lg">
+                  <div class="grid gap-md sm:grid-cols-2">
+                    <FormField label="Лимит пробега в сутки" for="f-lim" hint="Пусто — без лимита">
+                      <TextField id="f-lim" v-model="draft.mileageLimitPerDay" inputmode="numeric" suffix="км" />
+                    </FormField>
+                    <FormField label="Цена за км сверх лимита" for="f-over">
+                      <TextField id="f-over" v-model="draft.overmileagePrice" inputmode="numeric" suffix="с." />
+                    </FormField>
+                  </div>
+
+                  <div>
+                    <!-- «Работа в такси» убрана: с 25.09.2026 это и есть смысл любого
+                         объявления на платформе, спрашивать об этом отдельно нечего -->
+                    <h3 class="mb-sm text-small font-bold text-ink">Что разрешено</h3>
+                    <div class="grid gap-2 sm:grid-cols-2">
+                      <label
+                        v-for="rule in [
+                          { key: 'allowIntercity', label: 'Выезд за пределы города' },
+                          { key: 'allowAbroad', label: 'Выезд за пределы страны' },
+                          { key: 'allowSmoking', label: 'Курение в салоне' },
+                          { key: 'allowPets', label: 'Перевозка животных' },
+                        ]"
+                        :key="rule.key"
+                        class="flex cursor-pointer items-center gap-2.5 rounded-radius-md border border-hairline px-3.5 py-2.5 transition-colors duration-fast hover:bg-surface-sunken"
+                      >
+                        <input
+                          v-model="(draft as any)[rule.key]"
+                          type="checkbox"
+                          class="h-4 w-4 shrink-0 accent-brand-ink"
+                        />
+                        <span class="text-small text-ink">{{ rule.label }}</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
 

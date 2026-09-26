@@ -24,6 +24,11 @@ export const router = createRouter({
       component: () => import('@/pages/CarPage/index.vue'),
     },
     {
+      path: '/driver/:id',
+      name: 'driver-profile',
+      component: () => import('@/pages/DriverProfilePage/index.vue'),
+    },
+    {
       path: '/listings/new',
       name: 'listing-new',
       component: () => import('@/pages/ListingFormPage/index.vue'),

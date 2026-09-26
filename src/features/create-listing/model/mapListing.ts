@@ -41,6 +41,8 @@ export interface ApiOwnerListing {
   drive_type?: string | null;
   has_taxi_license?: boolean;
   has_turbo?: boolean;
+  has_gps_tracker?: boolean;
+  VIN?: string | null;
   vin_verified?: boolean;
 
   // Тариф аренды под такси (с 25.09.2026 — единственный вид объявления)
@@ -102,8 +104,10 @@ export function listingToDraft(api: ApiOwnerListing): ListingDraft {
     driveType: str(api.drive_type),
     hasTaxiLicense: flag(api.has_taxi_license),
     hasTurbo: flag(api.has_turbo),
+    hasGpsTracker: Boolean(api.has_gps_tracker),
     carNumber: str(api.car_number),
     countSeat: str(api.count_seat),
+    vin: str(api.VIN),
 
     tariffMinMonths: api.tariff ? str(api.tariff.min_months) : base.tariffMinMonths,
     tariffOffDaysPerMonth: api.tariff ? str(api.tariff.off_days_per_month) : base.tariffOffDaysPerMonth,
@@ -162,6 +166,8 @@ export function draftToPayload(draft: ListingDraft): Record<string, unknown> {
     drive_type: draft.driveType || null,
     has_taxi_license: draft.hasTaxiLicense === '1',
     has_turbo: draft.hasTurbo === '1',
+    has_gps_tracker: draft.hasGpsTracker,
+    VIN: draft.vin.trim().toUpperCase() || null,
 
     description: draft.description.trim() || null,
     address: draft.address.trim() || null,

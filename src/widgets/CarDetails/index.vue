@@ -69,6 +69,7 @@ const specs = computed(() => {
   push('Цвет', c.color?.name);
   if (c.hasTurbo) push('Турбина', 'Есть');
   if (c.hasTaxiLicense) push('Лицензия на такси', 'Есть');
+  if (c.hasGpsTracker) push('GPS-трекер', 'Есть');
 
   return rows;
 });
@@ -527,9 +528,12 @@ onUnmounted(() => observer?.disconnect());
             </p>
           </div>
 
-          <div
+          <component
+            :is="car.owner.id ? 'RouterLink' : 'div'"
             v-if="car.owner"
-            class="mt-base flex items-center gap-3 rounded-radius-lg border border-hairline bg-surface-paper p-base"
+            :to="car.owner.id ? { name: 'driver-profile', params: { id: car.owner.id } } : undefined"
+            class="mt-base flex items-center gap-3 rounded-radius-lg border border-hairline bg-surface-paper p-base transition-colors duration-fast"
+            :class="car.owner.id ? 'hover:bg-surface-sunken' : ''"
           >
             <span
               class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-title-sm font-extrabold text-brand-on"
@@ -541,9 +545,11 @@ onUnmounted(() => observer?.disconnect());
               <span class="block truncate text-small font-bold text-ink">
                 {{ car.owner.displayName }}
               </span>
-              <span class="block text-caption text-ink-soft">{{ ownerTypeLabel }}</span>
+              <span class="block text-caption text-ink-soft">
+                {{ ownerTypeLabel }}<template v-if="car.owner.id"> · все объявления</template>
+              </span>
             </span>
-          </div>
+          </component>
         </aside>
       </div>
     </div>

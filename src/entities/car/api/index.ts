@@ -81,3 +81,61 @@ export async function getCarById(id: string): Promise<Car | undefined> {
   }
   return undefined;
 }
+
+export interface OwnerProfile {
+  id: number;
+  displayName: string;
+  ownerType: string;
+  memberSince: string | null;
+}
+
+const EMPTY_OWNER_PROFILE = {
+  owner: null,
+  listings: { data: [], meta: { total: 0, perPage: 12, currentPage: 1, lastPage: 1 } },
+};
+
+/** Публичный профиль владельца — имя и все опубликованные объявления (ТЗ, 26.09.2026) */
+export async function getOwnerProfile(
+  id: string | number,
+  page = 1,
+): Promise<{ owner: OwnerProfile | null; listings: PaginatedCars }> {
+  // 404 — обычный, ожидаемый ответ для несуществующего/забаненного
+  // профиля, а не сбой: страница должна показать «не найден», а не
+  // повиснуть на «Загружаем…» из-за необработанного отказа промиса.
+  let responseData: { success?: boolean; data?: { owner: unknown; listings: unknown } } | null = null;
+  try {
+    const response = await apiInstance.get(`/landing/owners/${id}`, { params: { page } });
+    responseData = response.data;
+  } catch {
+    return EMPTY_OWNER_PROFILE;
+  }
+
+  if (!responseData?.success || !responseData?.data) {
+    return EMPTY_OWNER_PROFILE;
+  }
+
+  const { owner, listings } = responseData.data as {
+    owner: { id: number; display_name: string; owner_type: string | null; member_since: string | null } | null;
+    listings: { data: unknown[]; meta: { total: number; per_page: number; current_page: number; last_page: number } };
+  };
+
+  return {
+    owner: owner
+      ? {
+          id: owner.id,
+          displayName: owner.display_name,
+          ownerType: owner.owner_type || 'individual',
+          memberSince: owner.member_since ?? null,
+        }
+      : null,
+    listings: {
+      data: ((listings?.data ?? []) as ApiCarData[]).map(mapCar),
+      meta: {
+        total: listings?.meta?.total ?? 0,
+        perPage: listings?.meta?.per_page ?? 12,
+        currentPage: listings?.meta?.current_page ?? 1,
+        lastPage: listings?.meta?.last_page ?? 1,
+      },
+    },
+  };
+}

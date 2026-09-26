@@ -73,8 +73,10 @@ export interface ApiCarData {
   drive_type?: CarDriveType | null;
   has_taxi_license?: boolean;
   has_turbo?: boolean;
+  has_gps_tracker?: boolean;
   vin_verified?: boolean;
   owner?: {
+    id?: number;
     display_name?: string | null;
     owner_type?: string | null;
   } | null;
@@ -249,6 +251,7 @@ export function mapCar(apiData: ApiCarData): Car {
 
     owner: apiData.owner?.display_name
       ? {
+          id: apiData.owner.id,
           displayName: apiData.owner.display_name,
           ownerType: apiData.owner.owner_type || 'individual',
         }
@@ -264,6 +267,7 @@ export function mapCar(apiData: ApiCarData): Car {
     driveType: apiData.drive_type ?? null,
     hasTaxiLicense: Boolean(apiData.has_taxi_license),
     hasTurbo: Boolean(apiData.has_turbo),
+    hasGpsTracker: Boolean(apiData.has_gps_tracker),
     vinVerified: Boolean(apiData.vin_verified),
   };
 }
