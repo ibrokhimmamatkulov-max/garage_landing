@@ -1,5 +1,54 @@
-# Vue 3 + TypeScript + Vite
+# Гараж 2.0 — фронтенд, деплой ветки main2
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+`main2` — полная замена `main` (checkout, не merge). Полная инструкция по
+деплою бэкенда и фронта вместе — в `README.md` репозитория
+`back_car_base_api` (ветка `main2`). Здесь — только сборка фронта.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Сборка
+
+```bash
+npm ci
+npm run build
+```
+
+Переменная окружения на этапе сборки (важно — читается во время `build`,
+не в рантайме):
+
+```env
+VITE_API_BASE_URL=<URL бэкенда>/api
+```
+
+## Два независимых входа
+
+Сборка кладёт в `dist/` два самостоятельных приложения:
+
+```
+dist/index.html   → витрина + кабинет владельца
+dist/admin.html   → админка менеджера
+```
+
+У них общие только токены дизайна и компоненты, не рантайм — деплоятся
+как два отдельных сайта на разных доменах/поддоменах, каждый со своим
+`index.html`/`admin.html` в качестве корневой страницы.
+
+## SPA-роутинг — нужен фолбэк на статическом хостинге
+
+Оба приложения используют `createWebHistory` (не hash-роутинг). Без
+настройки хостинга обновление страницы на любом маршруте кроме `/`
+вернёт 404. Нужно настроить фолбэк:
+
+- для домена витрины — любой путь без расширения файла → `index.html`
+- для домена админки — любой путь без расширения файла → `admin.html`
+
+(Пример для Vercel — `vercel.json` в этом репозитории; для nginx —
+`try_files $uri $uri/ /index.html;` на соответствующий корень.)
+
+## Авторизация
+
+Два независимых контура:
+
+- Витрина/кабинет владельца — Sanctum, токен в `localStorage`
+- Админка менеджера — Passport (см. `INITIAL_ADMIN_PASSWORD` /
+  `PASSPORT_GRANT_CLIENT_SECRET` в README бэкенда)
+
+Токен одного контура не открывает ручки другого.
