@@ -2,11 +2,13 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { MANAGER_TOKEN_KEY } from '@/entities/manager/model/store';
 
 /**
- * Админка деплоится отдельно от витрины, поэтому в бою живёт в корне своего
- * домена. В разработке она отдаётся по /admin — отсюда разная база истории.
- * Пути внутри при этом одинаковые: '/', '/listings', '/owners'.
+ * Решение от 30.09.2026: админка живёт на том же домене, что и витрина,
+ * под путём /admin (https://ijora.gram.tj/admin), а не на отдельном
+ * поддомене — сервер отдаёт admin.html на этот путь, а ассеты остаются
+ * в корне (Vite base не менялся). Пути внутри одинаковые что в проде,
+ * что в разработке: '/', '/listings', '/owners'.
  */
-export const ADMIN_BASE = import.meta.env.DEV ? '/admin' : (import.meta.env.BASE_URL || '/');
+export const ADMIN_BASE = '/admin';
 
 function hasToken(): boolean {
   try {
