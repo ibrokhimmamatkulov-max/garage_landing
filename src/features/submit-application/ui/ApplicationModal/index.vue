@@ -127,7 +127,7 @@ async function submit() {
     if (result.success) emit('success');
     else error.value = result.message ?? 'Не удалось отправить заявку.';
   } catch (e: any) {
-    const errors = e?.response?.data?.errors;
+    const errors: Record<string, string[]> | undefined = e?.response?.data?.errors;
     error.value =
       (errors && Object.values(errors)[0]?.[0]) ??
       e?.response?.data?.message ??
