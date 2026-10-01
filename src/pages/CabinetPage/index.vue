@@ -40,6 +40,13 @@ function onPasswordSaved() {
 }
 
 const notice = computed(() => {
+  if (route.query.published && route.query.partial) {
+    const what = String(route.query.partial)
+      .split(',')
+      .map((p) => (p === 'photos' ? 'фотографии' : 'снимки техпаспорта'))
+      .join(' и ');
+    return `Объявление опубликовано, но не все файлы загрузились (${what}). Откройте объявление через «Изменить» и добавьте их ещё раз.`;
+  }
   if (route.query.published) return 'Объявление опубликовано и уже видно на витрине.';
   if (route.query.saved) return 'Изменения сохранены.';
   return null;

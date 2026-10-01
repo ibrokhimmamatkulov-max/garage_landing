@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { apiInstance } from '@/shared/api';
+import { useOwnerStore } from '@/entities/owner';
 import AppHeader from '@/widgets/AppHeader/index.vue';
 import AppFooter from '@/widgets/AppFooter/index.vue';
 import FormField from '@/shared/ui/FormField/index.vue';
@@ -255,10 +256,13 @@ const REQUIRED: Array<[keyof ListingDraft, string]> = [
  * Электромобилю нечего спрашивать про объём двигателя и турбину — этих
  * узлов у него нет. Определяем по названию топлива: стабильного кода у
  * типов топлива на бэке нет, только id и текст, так что матчим по
- * вхождению «электро» без учёта регистра.
+ * вхождению корня «электр» без учёта регистра: в справочнике io топливо
+ * называется «Электричество», а прежний шаблон «электро» его не ловил —
+ * поле объёма двигателя не пропадало. Гибрид сюда не попадает: у него
+ * двигатель есть.
  */
 const isElectric = computed(() =>
-  /электро/i.test(fuelTypes.value.find((f) => String(f.id) === draft.fuelTypeId)?.name ?? ''),
+  /электр/i.test(fuelTypes.value.find((f) => String(f.id) === draft.fuelTypeId)?.name ?? ''),
 );
 
 // Поля скрываются, но значение в черновике без этого осталось бы висеть —
@@ -334,18 +338,34 @@ const monthlyTotal = computed(() => {
  * форма остаётся на месте.
  */
 const authOpen = ref(false);
+const ownerStore = useOwnerStore();
 
 function submit() {
   if (!canSubmit.value || submitting.value) return;
 
-  // В правке владелец уже вошёл — спрашивать код второй раз незачем
+  // Вход нужен один раз. Уже вошедшему (в правке, либо зашёл заранее и
+  // вернулся к форме) код второй раз не спрашиваем — сразу публикуем.
   if (isEdit.value) {
     void save();
     return;
   }
 
+  if (ownerStore.isAuthenticated) {
+    void publish();
+    return;
+  }
+
   authOpen.value = true;
 }
+
+/**
+ * Загрузка файлов — с запасом по времени. Общий таймаут клиента 10 секунд,
+ * а несколько снимков с телефона по мобильной сети грузятся дольше: клиент
+ * обрывал запрос и писал «не удалось опубликовать», хотя сервер файлы уже
+ * принял и объявление было создано.
+ */
+const UPLOAD_TIMEOUT_MS = 120_000;
+const CREATE_TIMEOUT_MS = 30_000;
 
 /** Загрузка снимков одной пачкой: ручка принимает массив photos[] */
 async function uploadPhotos(id: string | number, files: File[]) {
@@ -353,7 +373,7 @@ async function uploadPhotos(id: string | number, files: File[]) {
 
   const form = new FormData();
   files.forEach((f) => form.append('photos[]', f));
-  await apiInstance.post(`/owner/listings/${id}/photos`, form);
+  await apiInstance.post(`/owner/listings/${id}/photos`, form, { timeout: UPLOAD_TIMEOUT_MS });
 }
 
 /**
@@ -367,7 +387,7 @@ async function uploadDocuments(id: string | number, files: File[]) {
 
   const form = new FormData();
   files.forEach((f) => form.append('documents[]', f));
-  await apiInstance.post(`/owner/listings/${id}/documents`, form);
+  await apiInstance.post(`/owner/listings/${id}/documents`, form, { timeout: UPLOAD_TIMEOUT_MS });
 }
 
 function readError(e: any, fallback: string): string {
@@ -379,24 +399,58 @@ function readError(e: any, fallback: string): string {
   );
 }
 
-async function onAuthSuccess() {
+function onAuthSuccess() {
   authOpen.value = false;
+  void publish();
+}
+
+/**
+ * Id уже созданного объявления. Если создание прошло, а загрузка файлов
+ * споткнулась, повторное нажатие дозагружает файлы к тому же объявлению, а не
+ * создаёт второе (его бы отбил бэк: «машина с таким госномером уже размещена»).
+ */
+const createdId = ref<number | null>(null);
+
+async function publish() {
   submitting.value = true;
   saveError.value = null;
+
   try {
-    const { data } = await apiInstance.post('/owner/listings', draftToPayload(draft));
-    const created = (data?.data ?? data) as { id: number };
-
-    await uploadPhotos(created.id, photos.value);
-    await uploadDocuments(created.id, documents.value);
-
-    clearDraft();
-    router.push({ name: 'cabinet', query: { published: '1' } });
+    if (createdId.value === null) {
+      const { data } = await apiInstance.post('/owner/listings', draftToPayload(draft), {
+        timeout: CREATE_TIMEOUT_MS,
+      });
+      createdId.value = ((data?.data ?? data) as { id: number }).id;
+    }
   } catch (e: any) {
     saveError.value = readError(e, 'Не удалось опубликовать объявление.');
-  } finally {
     submitting.value = false;
+    return;
   }
+
+  // Объявление создано и уже на витрине. Сбой файлов — не провал публикации:
+  // владелец увидит это в кабинете и добавит снимки там.
+  const failed: string[] = [];
+  const id = createdId.value;
+
+  try {
+    await uploadPhotos(id, photos.value);
+  } catch {
+    failed.push('photos');
+  }
+
+  try {
+    await uploadDocuments(id, documents.value);
+  } catch {
+    failed.push('documents');
+  }
+
+  clearDraft();
+  submitting.value = false;
+  router.push({
+    name: 'cabinet',
+    query: failed.length ? { published: '1', partial: failed.join(',') } : { published: '1' },
+  });
 }
 
 async function save() {
