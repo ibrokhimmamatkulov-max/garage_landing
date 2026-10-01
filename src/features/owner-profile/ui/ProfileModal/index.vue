@@ -72,14 +72,14 @@ async function save() {
 
 <template>
   <div
-    class="fixed inset-0 z-[200] flex items-end justify-center bg-ink/60 backdrop-blur-sm sm:items-center sm:p-lg"
+    class="fixed inset-0 z-[200] flex items-center justify-center p-base bg-ink/60 backdrop-blur-sm sm:p-lg"
     @click.self="emit('close')"
   >
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="profile-title"
-      class="max-h-[90vh] w-full max-w-[32rem] overflow-y-auto rounded-t-radius-2xl bg-surface-paper p-lg shadow-modal sm:rounded-radius-2xl sm:p-xl"
+      class="w-full max-w-[32rem] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-radius-2xl bg-surface-paper p-lg shadow-modal sm:p-xl"
     >
       <h2 id="profile-title" class="text-title font-bold text-ink">Данные профиля</h2>
       <p class="mt-1 text-small text-ink-muted">

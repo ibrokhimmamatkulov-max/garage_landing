@@ -78,7 +78,7 @@ function onCredentialsDone() {
 
 <template>
   <div
-    class="fixed inset-0 z-[200] flex items-end justify-center bg-ink/55 p-0 backdrop-blur-sm sm:items-center sm:p-lg"
+    class="fixed inset-0 z-[200] flex items-center justify-center p-base bg-ink/55 backdrop-blur-sm sm:p-lg"
     @click.self="emit('close')"
   >
     <div
@@ -86,7 +86,7 @@ function onCredentialsDone() {
       role="dialog"
       aria-modal="true"
       tabindex="-1"
-      class="w-full max-w-[26rem] rounded-t-radius-xl bg-surface-paper p-lg shadow-modal outline-none sm:rounded-radius-xl"
+      class="w-full max-w-[26rem] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-radius-xl bg-surface-paper p-lg shadow-modal outline-none"
     >
       <!-- ---------- Телефон ---------- -->
       <template v-if="auth.step.value === 'phone'">

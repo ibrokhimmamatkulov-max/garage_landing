@@ -38,14 +38,14 @@ onUnmounted(() => {
 
 <template>
   <div
-    class="fixed inset-0 z-[200] flex items-end justify-center bg-ink/55 backdrop-blur-sm sm:items-center sm:p-lg"
+    class="fixed inset-0 z-[200] flex items-center justify-center p-base bg-ink/55 backdrop-blur-sm sm:p-lg"
     @click.self="emit('close')"
   >
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="ok-title"
-      class="w-full max-w-[25rem] rounded-t-radius-xl bg-surface-paper p-lg shadow-modal sm:rounded-radius-xl"
+      class="w-full max-w-[25rem] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-radius-xl bg-surface-paper p-lg shadow-modal"
     >
       <div
         class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand"

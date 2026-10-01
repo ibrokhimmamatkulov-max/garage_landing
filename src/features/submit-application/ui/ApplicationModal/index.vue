@@ -162,7 +162,7 @@ onUnmounted(() => {
 
 <template>
   <div
-    class="fixed inset-0 z-[200] flex items-end justify-center bg-ink/60 backdrop-blur-sm sm:items-center sm:p-lg"
+    class="fixed inset-0 z-[200] flex items-center justify-center p-base bg-ink/60 backdrop-blur-sm sm:p-lg"
     @click.self="emit('close')"
   >
     <div
@@ -170,7 +170,7 @@ onUnmounted(() => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="apply-title"
-      class="relative w-full max-w-[25rem] rounded-t-radius-2xl bg-surface-paper p-lg shadow-modal sm:rounded-radius-2xl sm:p-xl"
+      class="relative w-full max-w-[25rem] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-radius-2xl bg-surface-paper p-lg shadow-modal sm:p-xl"
     >
       <!--
         Крестик выведен из потока: пока он стоял рядом с заголовком, тот
