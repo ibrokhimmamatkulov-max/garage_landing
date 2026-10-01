@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useManagerStore } from '@/entities/manager/model/store';
 import { AppLogo } from '@/shared/ui';
+import PhoneBindModal from '@/features/manager-phone/ui/PhoneBindModal/index.vue';
 
 defineOptions({
   name: 'AdminLayout',
@@ -28,6 +29,12 @@ const NAV = [
 
 const router = useRouter();
 const store = useManagerStore();
+const isPhoneBindOpen = ref(false);
+
+function formatPhone(phone: string): string {
+  const d = phone.replace(/\D/g, '');
+  return d.length === 12 ? `+${d.slice(0, 3)} ${d.slice(3, 5)} ${d.slice(5, 8)} ${d.slice(8)}` : phone;
+}
 
 onMounted(() => {
   if (!store.manager) store.loadMe();
@@ -71,6 +78,15 @@ function signOut() {
           {{ store.manager?.displayName ?? '—' }}
         </p>
         <button
+          class="w-full rounded-radius-md px-3.5 py-2 text-left text-caption font-semibold text-ink-muted transition-colors duration-fast hover:bg-surface-sunken hover:text-ink"
+          @click="isPhoneBindOpen = true"
+        >
+          <template v-if="store.manager?.phone">
+            Вход по SMS: {{ formatPhone(store.manager.phone) }}
+          </template>
+          <template v-else>Привязать телефон для входа по SMS</template>
+        </button>
+        <button
           class="w-full rounded-radius-md px-3.5 py-2.5 text-left text-small font-semibold text-ink-muted transition-colors duration-fast hover:bg-surface-sunken hover:text-ink"
           @click="signOut"
         >
@@ -95,12 +111,20 @@ function signOut() {
             {{ item.label }}
           </router-link>
         </div>
-        <button
-          class="shrink-0 text-small font-semibold text-ink-muted transition-colors duration-fast hover:text-ink"
-          @click="signOut"
-        >
-          Выйти
-        </button>
+        <div class="flex shrink-0 items-center gap-md">
+          <button
+            class="text-small font-semibold text-ink-muted transition-colors duration-fast hover:text-ink"
+            @click="isPhoneBindOpen = true"
+          >
+            Телефон
+          </button>
+          <button
+            class="text-small font-semibold text-ink-muted transition-colors duration-fast hover:text-ink"
+            @click="signOut"
+          >
+            Выйти
+          </button>
+        </div>
       </nav>
 
       <header class="border-b border-hairline bg-surface-paper px-base py-lg sm:px-lg">
@@ -112,5 +136,7 @@ function signOut() {
         <slot />
       </main>
     </div>
+
+    <PhoneBindModal v-if="isPhoneBindOpen" @close="isPhoneBindOpen = false" />
   </div>
 </template>

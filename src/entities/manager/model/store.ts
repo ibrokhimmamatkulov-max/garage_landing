@@ -11,6 +11,20 @@ export interface Manager {
   lastName: string | null;
   displayName: string;
   roles: string[];
+  /** Телефон для входа по SMS-коду; null — ещё не привязан. */
+  phone: string | null;
+}
+
+/** Ответ на запрос кода: в демо-режиме бэк возвращает сам код. */
+export interface OtpRequestResult {
+  ok: boolean;
+  stubCode: string | null;
+  error: string | null;
+}
+
+function firstError(e: any, fallback: string): string {
+  const errors = e?.response?.data?.errors as Record<string, string[]> | undefined;
+  return (errors && Object.values(errors)[0]?.[0]) ?? e?.response?.data?.message ?? fallback;
 }
 
 function read(key: string): string | null {
@@ -40,6 +54,7 @@ function mapManager(raw: Record<string, any>): Manager {
     lastName: last,
     displayName: [first, last].filter(Boolean).join(' ') || raw.login || 'Менеджер',
     roles: (raw.roles ?? []).map((r: any) => (typeof r === 'string' ? r : r.name)),
+    phone: raw.phone ?? null,
   };
 }
 
@@ -81,6 +96,69 @@ export const useManagerStore = defineStore('manager', () => {
     }
   }
 
+  /* ---------- вход по SMS-коду ---------- */
+
+  async function requestOtp(phone: string): Promise<OtpRequestResult> {
+    busy.value = true;
+    error.value = null;
+    try {
+      const { data } = await apiInstance.post('/auth/request-otp', { phone });
+      return { ok: true, stubCode: data?.data?.stub_code ?? null, error: null };
+    } catch (e: any) {
+      error.value = firstError(e, 'Не удалось отправить код. Попробуйте ещё раз.');
+      return { ok: false, stubCode: null, error: error.value };
+    } finally {
+      busy.value = false;
+    }
+  }
+
+  async function signInWithOtp(phone: string, code: string): Promise<boolean> {
+    busy.value = true;
+    error.value = null;
+    try {
+      const { data } = await apiInstance.post('/auth/verify-otp', { phone, code });
+      const payload = data.data ?? data;
+      const accessToken = payload.access_token ?? payload.token;
+      if (!accessToken) {
+        error.value = 'Сервер не вернул токен доступа.';
+        return false;
+      }
+      token.value = accessToken;
+      write(MANAGER_TOKEN_KEY, accessToken);
+      return true;
+    } catch (e: any) {
+      // 401 — номер не привязан ни к одному действующему сотруднику
+      error.value =
+        e?.response?.status === 401
+          ? 'Этот номер не привязан к учётной записи сотрудника.'
+          : firstError(e, 'Не удалось войти. Попробуйте ещё раз.');
+      return false;
+    } finally {
+      busy.value = false;
+    }
+  }
+
+  /* ---------- привязка телефона после входа по паролю ---------- */
+
+  async function requestPhoneBind(phone: string): Promise<OtpRequestResult> {
+    try {
+      const { data } = await apiInstance.post('/auth/phone/request-otp', { phone });
+      return { ok: true, stubCode: data?.data?.stub_code ?? null, error: null };
+    } catch (e: any) {
+      return { ok: false, stubCode: null, error: firstError(e, 'Не удалось отправить код.') };
+    }
+  }
+
+  async function confirmPhoneBind(phone: string, code: string): Promise<string | null> {
+    try {
+      const { data } = await apiInstance.post('/auth/phone/verify-otp', { phone, code });
+      if (manager.value) manager.value.phone = data?.data?.phone ?? phone;
+      return null;
+    } catch (e: any) {
+      return firstError(e, 'Не удалось подтвердить код.');
+    }
+  }
+
   async function loadMe() {
     if (!token.value) return;
     try {
@@ -97,5 +175,18 @@ export const useManagerStore = defineStore('manager', () => {
     write(MANAGER_TOKEN_KEY, null);
   }
 
-  return { token, manager, busy, error, isAuthenticated, signIn, loadMe, signOut };
+  return {
+    token,
+    manager,
+    busy,
+    error,
+    isAuthenticated,
+    signIn,
+    requestOtp,
+    signInWithOtp,
+    requestPhoneBind,
+    confirmPhoneBind,
+    loadMe,
+    signOut,
+  };
 });
