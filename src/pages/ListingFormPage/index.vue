@@ -168,23 +168,30 @@ async function pick<T = Option[]>(url: string, params?: Record<string, unknown>)
   return (data?.data ?? []) as T;
 }
 
+/** Результат одного справочника или запасное значение, если запрос упал. */
+function settledOr<T>(result: PromiseSettledResult<T>, fallback: T): T {
+  return result.status === 'fulfilled' ? result.value : fallback;
+}
+
 onMounted(async () => {
-  const [c, b, bt, col, g, f, ref_] = await Promise.all([
+  // allSettled, а не all: с Promise.all одна упавшая ручка (было — 404 на
+  // /owner/reference после переезда ручки) обнуляла ВСЕ списки формы разом.
+  const [c, b, bt, col, g, f, ref_] = await Promise.allSettled([
     pick('/landing/cities'),
     pick('/landing/car-brands'),
     pick('/landing/body-types'),
     pick('/landing/colors'),
     pick('/landing/gearboxes'),
     pick('/landing/fuel-types'),
-    pick<typeof reference.value>('/owner/reference'),
+    pick<typeof reference.value>('/landing/reference'),
   ]);
-  cities.value = c;
-  brands.value = b;
-  bodyTypes.value = bt;
-  colors.value = col;
-  gearboxes.value = g;
-  fuelTypes.value = f;
-  reference.value = ref_;
+  cities.value = settledOr(c, []);
+  brands.value = settledOr(b, []);
+  bodyTypes.value = settledOr(bt, []);
+  colors.value = settledOr(col, []);
+  gearboxes.value = settledOr(g, []);
+  fuelTypes.value = settledOr(f, []);
+  reference.value = settledOr(ref_, reference.value);
 
   if (listingId.value) {
     await loadListing(listingId.value);
