@@ -233,13 +233,11 @@ const REQUIRED: Array<[keyof ListingDraft, string]> = [
   ['brandId', 'Марка'],
   ['modelId', 'Модель'],
   ['year', 'Год выпуска'],
-  ['conditionId', 'Состояние'],
   ['engineVolume', 'Объём двигателя'],
   ['bodyTypeId', 'Кузов'],
   ['colorId', 'Цвет'],
   ['gearboxId', 'Коробка передач'],
   ['fuelTypeId', 'Вид топлива'],
-  ['driveType', 'Привод'],
   ['carNumber', 'Госномер'],
   ['customsCleared', 'Растаможен в РТ'],
   ['mileage', 'Пробег'],
@@ -265,18 +263,21 @@ watch(isElectric, (electric) => {
 });
 
 /**
- * Формат госномера РТ: 01 AB 123 TJ (пробелы необязательны). VIN — 17 латинских
- * букв и цифр без I/O/Q (их путают с 1/0), как того требует стандарт.
- * Ошибка показывается в реальном времени под полем, а не только при попытке
- * отправить форму (решение от 26.09.2026).
+ * Формат госномера РТ (проверено 01.10.2026): 4 цифры + 2 буквы + 2-значный
+ * код региона, например 1234 AB 01 (пробелы необязательны). Прежний паттерн
+ * (2 цифры + 2 буквы + 3 цифры + TJ) не совпадал с реальным форматом вообще —
+ * ни один настоящий номер РТ под него не подходил.
+ * VIN — 17 латинских букв и цифр без I/O/Q (их путают с 1/0), как того
+ * требует стандарт. Ошибка показывается в реальном времени под полем, а не
+ * только при попытке отправить форму (решение от 26.09.2026).
  */
-const CAR_NUMBER_PATTERN = /^\d{2}\s?[A-Z]{2}\s?\d{3}\s?TJ$/i;
+const CAR_NUMBER_PATTERN = /^\d{4}\s?[A-Z]{2}\s?\d{2}$/i;
 const VIN_PATTERN = /^[A-HJ-NPR-Z0-9]{17}$/i;
 
 const carNumberError = computed(() => {
   const value = draft.carNumber.trim();
   if (!value) return null;
-  return CAR_NUMBER_PATTERN.test(value) ? null : 'Формат: 01 AB 123 TJ';
+  return CAR_NUMBER_PATTERN.test(value) ? null : 'Формат: 1234 AB 01';
 });
 
 const vinError = computed(() => {
@@ -473,7 +474,7 @@ async function save() {
                 :error="carNumberError"
                 hint="По нему мы не даём выставить одну машину дважды"
               >
-                <TextField id="f-plate" v-model="draft.carNumber" placeholder="01 AB 123 TJ" />
+                <TextField id="f-plate" v-model="draft.carNumber" placeholder="1234 AB 01" />
               </FormField>
 
               <FormField label="Марка" required for="f-brand">
@@ -492,10 +493,6 @@ async function save() {
               <FormField label="Год выпуска" required for="f-year">
                 <NativeSelect id="f-year" v-model="draft.year" :options="reference.years" />
               </FormField>
-              <FormField label="Состояние" required for="f-cond">
-                <NativeSelect id="f-cond" v-model="draft.conditionId" :options="reference.conditions" />
-              </FormField>
-
               <FormField label="Кузов" required for="f-body">
                 <NativeSelect id="f-body" v-model="draft.bodyTypeId" :options="bodyTypes" />
               </FormField>
@@ -510,9 +507,6 @@ async function save() {
                 <NativeSelect id="f-fuel" v-model="draft.fuelTypeId" :options="fuelTypes" />
               </FormField>
 
-              <FormField label="Привод" required for="f-drive">
-                <NativeSelect id="f-drive" v-model="draft.driveType" :options="reference.drive_types" />
-              </FormField>
               <!-- У электромобиля нет объёма двигателя — поле снято, а не просто спрятано -->
               <FormField v-if="!isElectric" label="Объём двигателя" required for="f-vol">
                 <NativeSelect id="f-vol" v-model="draft.engineVolume" :options="reference.engine_volumes" />
@@ -699,17 +693,6 @@ async function save() {
                   />
                 </FormField>
 
-                <FormField label="Топливо" for="f-fp">
-                  <NativeSelect
-                    id="f-fp"
-                    v-model="draft.fuelPolicy"
-                    :options="[
-                      { id: 'full_to_full', name: 'Полный бак — полный бак' },
-                      { id: 'tenant', name: 'Платит арендатор' },
-                      { id: 'owner', name: 'Платит владелец' },
-                    ]"
-                  />
-                </FormField>
                 <FormField label="Залог документов" for="f-pledge">
                   <NativeSelect
                     id="f-pledge"

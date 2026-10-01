@@ -71,10 +71,10 @@ const cities = computed(() => locationStore.cities.slice(0, 8));
             Поддержка
           </h3>
           <a
-            href="tel:+992446506655"
+            href="tel:+992446303003"
             class="tnum mt-base block text-title-sm font-extrabold text-ink no-underline transition-colors duration-fast hover:text-brand-ink"
           >
-            44 650 66 55
+            44 630 30 03
           </a>
           <p class="mt-1 text-caption text-ink-soft">Ежедневно, 9:00 — 20:00</p>
         </div>

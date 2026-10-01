@@ -42,12 +42,6 @@ const badges = computed(() => {
 
 /* ---------- Характеристики ---------- */
 
-const DRIVE_LABELS: Record<string, string> = {
-  fwd: 'Передний',
-  rwd: 'Задний',
-  awd: 'Полный',
-};
-
 /**
  * Пустые поля не показываем вовсе.
  *
@@ -64,7 +58,6 @@ const specs = computed(() => {
   };
 
   push('Объём двигателя', c.engineVolume ? `${num(c.engineVolume)} л` : null);
-  push('Привод', c.driveType ? DRIVE_LABELS[c.driveType] : null);
   push('Кузов', c.bodyType?.name || c.carClass);
   push('Цвет', c.color?.name);
   if (c.hasTurbo) push('Турбина', 'Есть');
