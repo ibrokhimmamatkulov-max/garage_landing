@@ -38,12 +38,21 @@ const draft = reactive({
   sort: 'price_asc',
 });
 
+// В списке — короткие подписи: в узкой колонке на телефоне «Сначала дешевле»
+// обрезалось до «Сначала деше…». Полная фраза нужна только в строке счётчика.
 const SORTS: Option[] = [
-  { id: 'price_asc', name: 'Сначала дешевле' },
-  { id: 'price_desc', name: 'Сначала дороже' },
-  { id: 'year_desc', name: 'Сначала новее' },
-  { id: 'year_asc', name: 'Сначала старше' },
+  { id: 'price_asc', name: 'Дешевле' },
+  { id: 'price_desc', name: 'Дороже' },
+  { id: 'year_desc', name: 'Новее' },
+  { id: 'year_asc', name: 'Старше' },
 ];
+
+const SORT_PHRASE: Record<string, string> = {
+  price_asc: 'сначала дешевле',
+  price_desc: 'сначала дороже',
+  year_desc: 'сначала новее',
+  year_asc: 'сначала старше',
+};
 
 const brandOptions = computed<Option[]>(() => [{ id: '', name: 'Любая' }, ...brands.value]);
 
@@ -66,9 +75,7 @@ const carsLabel = computed(() => {
   return 'автомобилей';
 });
 
-const sortLabel = computed(
-  () => SORTS.find((s) => s.id === carStore.filters.sort)?.name.toLowerCase() ?? 'сначала дешевле',
-);
+const sortLabel = computed(() => SORT_PHRASE[carStore.filters.sort ?? 'price_asc'] ?? SORT_PHRASE.price_asc);
 
 const str = (v: number | null | undefined) => (v === null || v === undefined ? '' : String(v));
 const num = (v: string) => {
@@ -209,8 +216,8 @@ async function reset() {
           class="mt-md rounded-radius-lg border border-hairline bg-surface-paper p-base sm:p-lg"
           @submit.prevent="apply"
         >
-          <div class="grid gap-base sm:grid-cols-2 lg:grid-cols-3">
-            <FormField label="Марка" for="cf-brand">
+          <div class="grid grid-cols-2 gap-x-md gap-y-base sm:gap-x-base lg:grid-cols-3">
+            <FormField label="Марка" for="cf-brand" class="col-span-2 sm:col-span-1">
               <SearchSelect
                 id="cf-brand"
                 v-model="draft.brandId"
@@ -231,8 +238,12 @@ async function reset() {
               <NativeSelect id="cf-fuel" v-model="draft.fuelTypeId" :options="fuelTypes" empty-label="Любое" />
             </FormField>
 
+            <FormField label="Сортировка" for="cf-sort">
+              <NativeSelect id="cf-sort" v-model="draft.sort" :options="SORTS" />
+            </FormField>
             <FormField
               label="Цена за сутки, сомони"
+              class="col-span-2 sm:col-span-1"
               for="cf-price-from"
               :error="priceRangeInvalid ? '«От» больше, чем «До»' : null"
             >
@@ -255,15 +266,12 @@ async function reset() {
               </div>
             </FormField>
 
-            <FormField label="Сортировка" for="cf-sort">
-              <NativeSelect id="cf-sort" v-model="draft.sort" :options="SORTS" />
-            </FormField>
           </div>
 
-          <div class="mt-lg flex flex-col-reverse gap-sm sm:flex-row sm:items-center sm:justify-end">
+          <div class="mt-lg flex items-center gap-sm sm:justify-end">
             <button
               type="button"
-              class="min-h-[44px] rounded-radius-md px-4 text-small font-semibold text-ink-muted transition-colors duration-fast hover:text-ink"
+              class="min-h-[44px] shrink-0 rounded-radius-md px-4 text-small font-semibold text-ink-muted transition-colors duration-fast hover:text-ink"
               @click="reset"
             >
               Сбросить
@@ -271,7 +279,7 @@ async function reset() {
             <button
               type="submit"
               :disabled="priceRangeInvalid"
-              class="min-h-[44px] rounded-radius-md bg-brand px-6 text-body font-semibold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft"
+              class="min-h-[44px] flex-1 rounded-radius-md bg-brand px-6 text-body font-semibold text-brand-on transition-colors duration-fast hover:bg-brand-press disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-soft sm:flex-none"
             >
               Показать
             </button>
