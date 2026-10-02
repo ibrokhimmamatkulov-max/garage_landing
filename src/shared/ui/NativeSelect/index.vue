@@ -14,6 +14,8 @@ defineProps<{
   modelValue: string | number | null;
   options: Array<{ id: string | number; name: string }>;
   placeholder?: string;
+  /** Если задано — в списке есть пункт «пусто» с этим текстом (для фильтров: «Любая») */
+  emptyLabel?: string;
   id?: string;
   disabled?: boolean;
   invalid?: boolean;
@@ -38,7 +40,8 @@ defineEmits<{
       "
       @change="$emit('update:modelValue', ($event.target as HTMLSelectElement).value)"
     >
-      <option value="" disabled>{{ placeholder ?? 'Выберите из списка' }}</option>
+      <option v-if="emptyLabel !== undefined" value="">{{ emptyLabel }}</option>
+      <option v-else value="" disabled>{{ placeholder ?? 'Выберите из списка' }}</option>
       <option v-for="opt in options" :key="opt.id" :value="opt.id">{{ opt.name }}</option>
     </select>
 

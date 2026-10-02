@@ -6,6 +6,7 @@ import { useLocationStore } from '@/entities/location';
 import AppHeader from '@/widgets/AppHeader/index.vue';
 import HeroBanner from '@/widgets/HeroBanner/index.vue';
 import CarCatalog from '@/widgets/CarCatalog/index.vue';
+import CatalogFilter from '@/widgets/CatalogFilter/index.vue';
 import PromoBanner from '@/widgets/PromoBanner/index.vue';
 import AppFooter from '@/widgets/AppFooter/index.vue';
 import { ApplicationModal, ApplicationSuccessModal } from '@/features/submit-application';
@@ -72,6 +73,7 @@ function handleResetFilters() {
   <div class="flex min-h-screen flex-col bg-surface-canvas">
     <AppHeader />
     <HeroBanner />
+    <CatalogFilter />
 
     <CarCatalog
       :cars="carStore.cars"

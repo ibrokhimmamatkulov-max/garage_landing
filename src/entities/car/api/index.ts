@@ -39,6 +39,10 @@ export async function getCars(filters?: CarFilters): Promise<PaginatedCars> {
     if (filters.fuelTypeId !== null && filters.fuelTypeId !== undefined) params.fuel_type_id = filters.fuelTypeId;
     if (filters.tariffId !== null && filters.tariffId !== undefined) params.tariff_id = filters.tariffId;
     if (filters.durationDays !== null && filters.durationDays !== undefined) params.duration_days = filters.durationDays;
+    if (filters.brandId !== null && filters.brandId !== undefined) params.brand_id = filters.brandId;
+    if (filters.bodyTypeId !== null && filters.bodyTypeId !== undefined) params.body_type_id = filters.bodyTypeId;
+    if (filters.priceFrom !== null && filters.priceFrom !== undefined) params.price_from = filters.priceFrom;
+    if (filters.priceTo !== null && filters.priceTo !== undefined) params.price_to = filters.priceTo;
     if (filters.sort !== null && filters.sort !== undefined) params.sort = filters.sort;
     if (filters.page !== undefined) params.page = filters.page;
     if (filters.perPage !== undefined) params.per_page = filters.perPage;
