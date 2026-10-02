@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useLocationStore, type City } from '@/entities/location';
 import { useCarStore } from '@/entities/car';
+import { useFavoriteStore } from '@/entities/favorite';
 import { AppIcon, AppLogo } from '@/shared/ui';
 
 defineOptions({
@@ -9,6 +10,7 @@ defineOptions({
 });
 
 const locationStore = useLocationStore();
+const favoriteStore = useFavoriteStore();
 const carStore = useCarStore();
 
 const isScrolled = ref(false);
@@ -147,6 +149,29 @@ watch(
             </div>
           </Transition>
         </div>
+
+        <router-link
+          to="/favorites"
+          class="relative flex h-9 w-9 items-center justify-center rounded-full text-ink no-underline transition-colors duration-fast hover:bg-surface-sunken"
+          aria-label="Избранное"
+          title="Избранное"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7C19.5 15.9 12 20.5 12 20.5z"
+              stroke-width="1.8"
+              stroke-linejoin="round"
+              :fill="favoriteStore.count ? '#E5322D' : 'none'"
+              :stroke="favoriteStore.count ? '#E5322D' : 'currentColor'"
+            />
+          </svg>
+          <span
+            v-if="favoriteStore.count"
+            class="tnum absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-ink px-1 text-[11px] font-bold leading-none text-white"
+          >
+            {{ favoriteStore.count }}
+          </span>
+        </router-link>
 
         <span class="hidden h-4 w-px bg-hairline sm:block" aria-hidden="true" />
 

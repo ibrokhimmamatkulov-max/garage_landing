@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { type Car, CarGallery } from '@/entities/car';
+import { FavoriteButton } from '@/entities/favorite';
 import { inCity } from '@/shared/lib/city';
 
 defineOptions({
@@ -317,6 +318,8 @@ onUnmounted(() => observer?.disconnect());
           {{ car.brand }} {{ car.model }}
         </h1>
         <p class="tnum mt-1.5 text-body-lg text-ink-muted">{{ subtitle }}</p>
+
+        <FavoriteButton :car-id="car.id" variant="inline" class="mt-md" />
 
         <div v-if="badges.length" class="mt-md flex flex-wrap gap-2">
           <span

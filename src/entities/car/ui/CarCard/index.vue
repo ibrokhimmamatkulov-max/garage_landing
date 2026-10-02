@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import type { Car } from '../../model/types';
 import CarSpecs from '../CarSpecs/index.vue';
+import { FavoriteButton } from '@/entities/favorite';
 
 defineOptions({
   name: 'CarCard',
@@ -92,6 +93,8 @@ function handleTouchEnd(event: TouchEvent) {
       >
         Под такси
       </span>
+
+      <FavoriteButton :car-id="car.id" class="absolute right-3 top-3 z-10" />
 
       <!-- Невидимые зоны переключения кадров при наведении -->
       <div v-if="hasManyImages" class="absolute inset-0 hidden md:flex">
