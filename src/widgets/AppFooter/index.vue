@@ -76,7 +76,6 @@ const cities = computed(() => locationStore.cities.slice(0, 8));
           >
             44 630 30 03
           </a>
-          <p class="mt-1 text-caption text-ink-soft">Ежедневно, 9:00 — 20:00</p>
         </div>
       </div>
 
