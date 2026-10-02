@@ -7,6 +7,7 @@ import AppHeader from '@/widgets/AppHeader/index.vue';
 import AppFooter from '@/widgets/AppFooter/index.vue';
 import FormField from '@/shared/ui/FormField/index.vue';
 import NativeSelect from '@/shared/ui/NativeSelect/index.vue';
+import SearchSelect from '@/shared/ui/SearchSelect/index.vue';
 import TextField from '@/shared/ui/TextField/index.vue';
 import DocumentCheck from '@/features/create-listing/ui/DocumentCheck/index.vue';
 import PhotoUploader from '@/features/create-listing/ui/PhotoUploader/index.vue';
@@ -539,15 +540,15 @@ async function save() {
               </FormField>
 
               <FormField label="Марка" required for="f-brand">
-                <NativeSelect id="f-brand" v-model="draft.brandId" :options="brands" />
+                <SearchSelect id="f-brand" v-model="draft.brandId" :options="brands" placeholder="Выберите или начните вводить" />
               </FormField>
               <FormField label="Модель" required for="f-model">
-                <NativeSelect
+                <SearchSelect
                   id="f-model"
                   v-model="draft.modelId"
                   :options="models"
                   :disabled="!draft.brandId"
-                  :placeholder="draft.brandId ? 'Выберите из списка' : 'Сначала выберите марку'"
+                  :placeholder="draft.brandId ? 'Выберите или начните вводить' : 'Сначала выберите марку'"
                 />
               </FormField>
 
