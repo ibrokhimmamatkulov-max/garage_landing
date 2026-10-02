@@ -190,7 +190,7 @@ onUnmounted(() => {
 
       <h2
         id="apply-title"
-        class="text-balance text-center text-display-sm font-extrabold leading-tight text-ink"
+        class="text-balance px-6 text-center text-display-sm font-extrabold leading-tight text-ink sm:px-3"
       >
         {{ step === 'phone' ? 'Оставьте номер' : 'Подтвердите номер' }}
       </h2>
@@ -278,8 +278,9 @@ onUnmounted(() => {
           v-model="code"
           inputmode="numeric"
           maxlength="4"
+          placeholder="0000"
           aria-label="Код из SMS"
-          class="tnum mt-lg h-14 w-full rounded-full border-2 bg-surface-sunken pl-[0.45em] text-center text-price font-extrabold tracking-[0.45em] text-ink transition-all duration-fast focus:bg-surface-paper focus:outline-none"
+          class="tnum mt-lg h-14 w-full rounded-full border-2 bg-surface-sunken pl-[0.45em] text-center text-price font-extrabold tracking-[0.45em] text-ink transition-all duration-fast placeholder:text-ink-ghost focus:bg-surface-paper focus:outline-none"
           :class="
             error
               ? 'border-state-error'
